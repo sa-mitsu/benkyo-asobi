@@ -1,1 +1,1815 @@
-keep
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>さんすうであそぼう！ 完全版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #fdf6e3;
+            background-image: radial-gradient(#f3e5ab 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            touch-action: manipulation; /* ダブルタップズーム防止 */
+            -webkit-user-select: none; /* テキスト選択防止 */
+            user-select: none;
+        }
+
+        /* 立体的なボタンアニメーション */
+        .btn-pop {
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 5px 0px rgba(0,0,0,0.15);
+        }
+        .btn-pop:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0px rgba(0,0,0,0.15);
+        }
+        .btn-pop:active:not(:disabled) {
+            transform: translateY(5px);
+            box-shadow: 0 0px 0px rgba(0,0,0,0.15);
+        }
+        .btn-pop:disabled { opacity: 0.5; box-shadow: none; transform: translateY(5px); cursor: not-allowed; }
+
+        /* テンキーデザイン */
+        .numpad-btn {
+            background-color: #ffffff;
+            border: 3px solid #e5e7eb;
+            color: #374151;
+            font-size: 2rem;
+            font-weight: 900;
+            border-radius: 1.25rem;
+            transition: all 0.1s;
+            box-shadow: 0 5px 0px #d1d5db;
+            height: 4.4rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .numpad-btn:active { transform: translateY(5px); box-shadow: 0 0px 0px #d1d5db; }
+        .numpad-action { background-color: #fef08a; border-color: #fde047; box-shadow: 0 5px 0px #eab308; color: #854d0e; font-size: 1.25rem; }
+        .numpad-submit { background-color: #fb7185; border-color: #f43f5e; box-shadow: 0 5px 0px #e11d48; color: #ffffff; font-size: 1.25rem; }
+
+        .screen-hidden { display: none !important; }
+        
+        .fade-in { animation: fadeIn 0.35s ease forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .feedback-anim { animation: popUp 0.95s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popUp {
+            0% { transform: scale(0.3) translate(-50%, -50%); opacity: 0; transform-origin: 0 0; }
+            40% { transform: scale(1.2) translate(-40%, -40%); opacity: 1; transform-origin: 0 0; }
+            80% { transform: scale(1) translate(-50%, -50%); opacity: 1; transform-origin: 0 0; }
+            100% { transform: scale(1) translate(-50%, -50%); opacity: 0; transform-origin: 0 0; }
+        }
+
+        .levelup-anim { animation: bounceGrow 1s ease infinite; }
+        @keyframes bounceGrow {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.15) translateY(-8px); }
+        }
+
+        /* さくらんぼ計算の枝線 */
+        .cherry-branch-left {
+            width: 3px; height: 22px; background: #f43f5e; border-radius: 2px;
+            transform: rotate(32deg); transform-origin: top center;
+        }
+        .cherry-branch-right {
+            width: 3px; height: 22px; background: #f43f5e; border-radius: 2px;
+            transform: rotate(-32deg); transform-origin: top center;
+        }
+        /* さくらんぼ穴埋めアクティブ枠 */
+        .cherry-slot-active {
+            animation: cherryPulse 1.1s infinite ease-in-out;
+            border-color: #f59e0b !important;
+            background-color: #fef3c7 !important;
+            color: #b45309 !important;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25);
+        }
+        @keyframes cherryPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col items-center pb-12">
+
+    <!-- 🍎 カスタム通知バナー (alertの代替) -->
+    <div id="toast-banner" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white font-bold px-6 py-3 rounded-full shadow-xl z-50 transition-all duration-300 opacity-0 pointer-events-none text-center text-sm sm:text-base">
+        メッセージ
+    </div>
+
+    <!-- 🍎 初期化オーバーレイ (音声API起動用) -->
+    <div id="init-overlay" class="fixed inset-0 bg-gradient-to-b from-amber-50 to-orange-100 z-50 flex flex-col items-center justify-center cursor-pointer p-4" onclick="initApp()">
+        <div class="bg-white/90 p-8 rounded-3xl shadow-xl flex flex-col items-center max-w-md w-full border-4 border-orange-200">
+            <div class="text-7xl mb-4 animate-bounce">🐣</div>
+            <h1 class="text-3xl font-black text-orange-500 mb-2 tracking-wide">さんすう ランド</h1>
+            <p class="text-gray-500 font-bold mb-6 text-center">たのしく あそんで<br>さんすう マスターに なろう！</p>
+            <div class="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-black text-2xl py-5 px-8 rounded-full btn-pop shadow-lg text-center">
+                ▶ はじめる！
+            </div>
+        </div>
+    </div>
+
+    <!-- 🍎 共通ヘッダー -->
+    <header id="header" class="w-full max-w-2xl bg-white/95 backdrop-blur p-3 shadow-sm border-b-2 border-amber-100 flex justify-between items-center sticky top-0 z-20 screen-hidden">
+        <div class="flex items-center gap-2 overflow-hidden">
+            <span id="header-icon" class="text-2xl">📘</span>
+            <h1 class="text-lg font-black text-gray-700 truncate" id="header-title"></h1>
+        </div>
+        <button onclick="goHome()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full font-bold btn-pop text-sm flex-shrink-0 border border-gray-300">
+            🏠 ホームへ
+        </button>
+    </header>
+
+    <!-- 🍎 【1】ホーム画面 -->
+    <main id="home-screen" class="w-full max-w-2xl p-4 flex flex-col items-center screen-hidden">
+        <!-- トップタイトルバナー -->
+        <div class="w-full flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">✨</span>
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">さんすう ランド</h1>
+            </div>
+            <div class="bg-white px-3 py-1 rounded-full shadow-sm border border-amber-200 text-xs font-black text-amber-700">
+                つうさん <span id="total-plays-badge" class="text-base text-orange-500">0</span> かい チャレンジ
+            </div>
+        </div>
+
+        <!-- 育成パートナー＆ステータスカード -->
+        <div class="bg-white rounded-3xl shadow-md border-2 border-orange-100 p-4 w-full mb-4 flex items-center gap-4 relative overflow-hidden">
+            <div class="bg-orange-50 w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 border-2 border-orange-200">
+                <div id="partner-emoji" class="text-5xl pop-in">🥚</div>
+            </div>
+            <div class="flex-grow">
+                <div class="flex justify-between items-baseline mb-1">
+                    <span class="font-black text-lg text-gray-700">あいぼう Lv.<span id="partner-level" class="text-2xl text-orange-500">1</span></span>
+                    <span class="text-xs font-bold text-gray-400">けいけんち: <span id="partner-exp" class="text-gray-600">0</span></span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-3.5 p-0.5 border border-gray-200">
+                    <div id="exp-bar" class="bg-gradient-to-r from-yellow-400 to-orange-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <div id="badges-container" class="flex flex-wrap gap-1 text-xl min-h-[28px]"></div>
+                    <span id="partner-title-text" class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">ふしぎな タマゴ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- サブメニューボタン（きろく・にがてこくふく） -->
+        <div class="grid grid-cols-2 gap-3 w-full mb-6">
+            <button onclick="showRecords()" class="bg-gradient-to-b from-cyan-400 to-cyan-500 text-white font-black py-3.5 px-4 rounded-2xl btn-pop border-b-4 border-cyan-700 flex items-center justify-center gap-2 shadow-sm">
+                <span class="text-xl">📊</span>
+                <div class="text-left leading-tight">
+                    <div class="text-base">がんばり きろく</div>
+                    <div class="text-[11px] font-bold text-cyan-100">タイムと せいかいすう</div>
+                </div>
+            </button>
+            <button onclick="startWeaknessMode()" class="bg-gradient-to-b from-purple-400 to-purple-500 text-white font-black py-3.5 px-4 rounded-2xl btn-pop border-b-4 border-purple-700 flex items-center justify-center gap-2 shadow-sm relative">
+                <span class="text-xl">🔥</span>
+                <div class="text-left leading-tight">
+                    <div class="text-base">にがて こくふく</div>
+                    <div class="text-[11px] font-bold text-purple-100">まちがえた もんだい</div>
+                </div>
+                <span id="weakness-count-badge" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+            </button>
+        </div>
+
+        <!-- カテゴリー別コース一覧コンテナ -->
+        <div id="course-categories-container" class="w-full flex flex-col gap-6">
+            <!-- JSでカテゴリーごとに動的生成 -->
+        </div>
+    </main>
+
+    <!-- 🍎 【2】プレイ画面 (通常問題) -->
+    <main id="play-screen" class="w-full max-w-2xl p-4 flex-col items-center screen-hidden">
+        <div class="flex justify-between items-center w-full mb-2 px-1">
+            <div class="font-black text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm text-sm" id="progress-text">1 / 15もん</div>
+            <div id="combo-text" class="font-black text-orange-500 text-base transition-all opacity-0 transform scale-50">🔥 2れんぞく!</div>
+            <div id="timer-display" class="font-bold text-base bg-gray-800 text-white px-3 py-1 rounded-full cursor-pointer shadow-sm" onclick="toggleTimer()" title="タップで じかんを かくせるよ">⏱ 00:00</div>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3 mb-5 shadow-inner overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-green-400 to-emerald-500 h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
+        </div>
+        
+        <div class="bg-white rounded-3xl shadow-lg border-2 border-amber-100 p-5 w-full flex flex-col items-center fade-in" id="quiz-container">
+            <div id="q-text" class="text-2xl sm:text-3xl font-black text-gray-800 mb-2 text-center leading-relaxed whitespace-pre-line min-h-[54px]"></div>
+            <div id="q-visual" class="flex flex-wrap items-center justify-center gap-2 mb-4 text-3xl sm:text-4xl min-h-[50px] w-full break-all"></div>
+
+            <!-- 2段階ヒントエリア -->
+            <div class="w-full flex flex-col items-center mb-5 min-h-[70px]">
+                <button id="btn-hint" onclick="showHint()" class="bg-yellow-300 hover:bg-yellow-400 text-yellow-900 font-black py-2 px-6 rounded-full shadow-sm border-b-2 border-yellow-500 flex items-center gap-2 transition-all text-sm sm:text-base">
+                    💡 ヒントを みる
+                </button>
+                <div id="hint-visual" class="mt-3 text-xl flex flex-wrap justify-center gap-1 screen-hidden w-full px-2 text-center"></div>
+                <div id="hint-text" class="mt-2 text-base font-bold text-amber-800 bg-amber-50 px-4 py-2 rounded-xl border border-amber-200 text-center screen-hidden"></div>
+            </div>
+
+            <!-- 入力表示枠 -->
+            <div id="input-display-area" class="w-full flex flex-col items-center mb-4 screen-hidden">
+                <div class="bg-blue-50 border-4 border-blue-200 rounded-2xl px-8 py-2.5 min-w-[160px] text-center shadow-inner">
+                    <span id="input-display" class="text-5xl font-black text-gray-400">？</span>
+                </div>
+                <div class="text-[11px] font-bold text-gray-400 mt-1">ボタンか キーボードで にゅうりょく できるよ</div>
+            </div>
+
+            <div id="input-area" class="w-full max-w-sm mt-auto"></div>
+        </div>
+    </main>
+
+    <!-- 🍎 【3】ゲーム画面 (コース14: 10をつくろう) -->
+    <main id="game10-screen" class="w-full max-w-2xl p-4 flex flex-col items-center screen-hidden min-h-[70vh]">
+        <div class="flex justify-between items-center w-full mb-4 px-1">
+            <div class="font-black text-gray-700 bg-white px-4 py-1.5 rounded-full shadow-sm text-base">たして 10に なる ペアを さがせ！</div>
+            <div id="game10-timer" class="font-bold text-xl bg-gray-800 text-white px-3 py-1 rounded-full">⏱ 00:00</div>
+        </div>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4 mt-2 w-full" id="game10-board">
+            <!-- JSで12枚のカード生成 -->
+        </div>
+    </main>
+
+    <!-- 🍎 【4】リザルト画面 -->
+    <main id="result-screen" class="w-full max-w-2xl p-6 flex flex-col items-center justify-center screen-hidden min-h-[70vh]">
+        <div class="bg-white rounded-3xl shadow-xl border-2 border-amber-100 p-8 w-full flex flex-col items-center text-center fade-in">
+            <div id="new-record-badge" class="bg-red-500 text-white font-black px-4 py-1 rounded-full mb-2 animate-bounce screen-hidden">🎉 しんきろく たっせい！</div>
+            <div id="result-icon" class="text-7xl mb-2">🌟</div>
+            <h2 id="result-title" class="text-3xl font-black mb-4">けっか はっぴょう！</h2>
+            
+            <div class="flex justify-center items-end gap-8 mb-6 bg-gray-50 px-6 py-4 rounded-2xl w-full">
+                <div>
+                    <div class="text-xs font-bold text-gray-400 mb-1">せいかい</div>
+                    <div class="text-5xl font-black text-blue-500"><span id="result-score">0</span><span class="text-2xl text-gray-500" id="result-total">/15</span></div>
+                </div>
+                <div class="h-12 w-0.5 bg-gray-200"></div>
+                <div>
+                    <div class="text-xs font-bold text-gray-400 mb-1">タイム</div>
+                    <div class="text-3xl font-black text-gray-700" id="result-time">00:00</div>
+                </div>
+            </div>
+
+            <div class="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 w-full mb-6 text-center">
+                <div class="font-bold text-orange-600 text-sm mb-1">けいけんち ゲット！</div>
+                <div class="text-3xl font-black text-orange-500">+<span id="gained-exp">0</span></div>
+                <div id="levelup-msg" class="text-pink-500 font-black text-lg mt-2 screen-hidden levelup-anim">🎊 あいぼうが レベルアップ！ 🎊</div>
+            </div>
+            
+            <div class="flex flex-col gap-3 w-full max-w-sm">
+                <button id="btn-review-mistakes" onclick="showReviewScreen()" class="w-full bg-rose-500 hover:bg-rose-600 text-white text-lg font-black py-4 rounded-full btn-pop border-b-4 border-rose-700 screen-hidden">
+                    📖 まちがえた もんだい の かいせつ
+                </button>
+                <button onclick="retryCurrentCourse()" class="w-full bg-emerald-400 hover:bg-emerald-500 text-white text-lg font-black py-3.5 rounded-full btn-pop border-b-4 border-emerald-600">
+                    🔄 もういちど チャレンジ
+                </button>
+                <button onclick="goHome()" class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 text-lg font-black py-3.5 rounded-full btn-pop border-b-4 border-yellow-600">
+                    🏠 ホームへ もどる
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 🍎 【5】解説（復習）画面 -->
+    <main id="review-screen" class="w-full max-w-2xl p-4 flex flex-col items-center screen-hidden">
+        <h2 class="text-2xl font-black text-rose-500 mb-4 bg-white px-6 py-2 rounded-full shadow-sm border border-rose-100">📖 かいせつ・ふくしゅう</h2>
+        <div id="review-list" class="w-full flex flex-col gap-4 mb-6">
+            <!-- JSで生成 -->
+        </div>
+        <button onclick="goHome()" class="w-full max-w-sm bg-gray-500 text-white text-xl font-black py-4 rounded-full btn-pop border-b-4 border-gray-700">
+            🏠 ホームへ もどる
+        </button>
+    </main>
+
+    <!-- 🍎 【6】きろく画面 -->
+    <main id="record-screen" class="w-full max-w-2xl p-4 flex flex-col items-center screen-hidden">
+        <h2 class="text-2xl font-black text-cyan-600 mb-3 bg-white px-6 py-2 rounded-full shadow-sm border border-cyan-100">📊 がんばり きろく</h2>
+        
+        <div class="grid grid-cols-2 gap-3 w-full mb-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm text-center border border-gray-100">
+                <div class="text-xs font-bold text-gray-400">つうさん チャレンジ</div>
+                <div class="text-3xl font-black text-cyan-600 mt-1"><span id="record-total-count">0</span><span class="text-sm text-gray-500 ml-1">かい</span></div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm text-center border border-gray-100">
+                <div class="text-xs font-bold text-gray-400">パーフェクト かいすう</div>
+                <div class="text-3xl font-black text-pink-500 mt-1"><span id="record-perfect-count">0</span><span class="text-sm text-gray-500 ml-1">かい</span></div>
+            </div>
+        </div>
+
+        <div class="bg-white w-full rounded-2xl shadow-sm overflow-hidden mb-6 border border-gray-100">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-cyan-50 text-cyan-800 text-sm">
+                        <th class="p-3 font-black">コース・ひにち</th>
+                        <th class="p-3 font-black text-center">せいかい</th>
+                        <th class="p-3 font-black text-center">タイム</th>
+                    </tr>
+                </thead>
+                <tbody id="record-table-body" class="text-sm">
+                    <!-- JSで生成 -->
+                </tbody>
+            </table>
+        </div>
+        <button onclick="goHome()" class="w-full max-w-sm bg-gray-500 text-white text-xl font-black py-4 rounded-full btn-pop border-b-4 border-gray-700">
+            🏠 もどる
+        </button>
+    </main>
+
+    <!-- 🍎 フィードバック（⭕️ ❌） -->
+    <div id="feedback" class="fixed top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 text-[150px] sm:text-[200px] font-black z-50 pointer-events-none screen-hidden drop-shadow-2xl"></div>
+
+    <script>
+        // ==========================================
+        // 1. データ管理 (メモリ＋安全なローカル保存)
+        // ==========================================
+        let userData = { exp: 0, level: 1, history: [], badges: [], mistakes: [], courseBestTimes: {} };
+        const STORAGE_KEY = 'sansuu_app_data_v3';
+
+        function loadData() {
+            try {
+                const data = window.localStorage.getItem(STORAGE_KEY);
+                if (data) userData = { ...userData, ...JSON.parse(data) };
+                if (!userData.courseBestTimes) userData.courseBestTimes = {};
+                if (!userData.mistakes) userData.mistakes = [];
+                if (!userData.badges) userData.badges = [];
+                if (!userData.history) userData.history = [];
+            } catch (e) {
+                console.warn("Storage unavailable, using in-memory state.");
+            }
+        }
+
+        function saveData() {
+            try {
+                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+            } catch (e) {
+                // サンドボックス等で保存できない場合はメモリ内のみで動作継続
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-banner');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translate(-50%, 8px)';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, 0px)';
+            }, 2500);
+        }
+
+        // ==========================================
+        // 2. パートナー育成ロジック
+        // ==========================================
+        const LEVELS = [
+            { threshold: 0, emoji: '🥚', name: 'ふしぎな タマゴ' },
+            { threshold: 100, emoji: '🐣', name: 'げんきな ヒヨコ' },
+            { threshold: 300, emoji: '🐥', name: 'さんすう コトリ' },
+            { threshold: 600, emoji: '🐓', name: 'ものしり ニワトリ' },
+            { threshold: 1200, emoji: '🦅', name: 'でんせつの ワシ' },
+            { threshold: 2000, emoji: '🐉', name: 'さんすう ドラゴン' }
+        ];
+
+        function getPartnerLevelInfo(exp) {
+            let current = LEVELS[0];
+            let lvlNum = 1;
+            for (let i = 0; i < LEVELS.length; i++) {
+                if (exp >= LEVELS[i].threshold) { current = LEVELS[i]; lvlNum = i + 1; }
+            }
+            let next = LEVELS[lvlNum] ? LEVELS[lvlNum].threshold : exp;
+            return { emoji: current.emoji, name: current.name, level: lvlNum, nextExp: next };
+        }
+
+        // ==========================================
+        // 3. Web Audio API (心地よい効果音に改良)
+        // ==========================================
+        let audioCtx;
+        function initApp() {
+            document.getElementById('init-overlay').style.display = 'none';
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+            loadData();
+            goHome();
+        }
+
+        function playTone(freq, startTime, duration, type = 'sine', maxGain = 0.14) {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+
+            // 木琴やチャイムのような優しい立ち上がりと減衰
+            gain.gain.setValueAtTime(0.001, startTime);
+            gain.gain.linearRampToValueAtTime(maxGain, startTime + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
+        // ① 正解音：明るく澄んだマリンバ風の「ピン・ポーン♪」和音
+        function playCorrect() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            const now = audioCtx.currentTime;
+            // 1音目：シ (B5 = 987.77Hz)
+            playTone(987.77, now, 0.18, 'sine', 0.13);
+            playTone(1975.53, now, 0.08, 'sine', 0.03); // 倍音でキラキラ感
+            // 2音目：ソ (G5 = 783.99Hz)
+            playTone(783.99, now + 0.11, 0.38, 'sine', 0.14);
+            playTone(1567.98, now + 0.11, 0.18, 'sine', 0.03);
+        }
+
+        // 不正解音：控えめで優しい低音
+        function playWrong() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            const now = audioCtx.currentTime;
+            playTone(196.00, now, 0.16, 'triangle', 0.10);
+            playTone(164.81, now + 0.14, 0.25, 'triangle', 0.10);
+        }
+
+        // レベルアップ音：ファンファーレ風アルペジオ
+        function playLevelUp() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // ド・ミ・ソ・高いド
+            notes.forEach((f, idx) => {
+                playTone(f, now + idx * 0.11, idx === 3 ? 0.5 : 0.18, 'sine', 0.14);
+            });
+        }
+
+        function playCardClick() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            playTone(880, audioCtx.currentTime, 0.09, 'sine', 0.08);
+        }
+
+        // ==========================================
+        // 4. カテゴリー＆コース定義（学習内容の明示）
+        // ==========================================
+        const courseCategories = [
+            {
+                id: 'cat-basics',
+                title: '🐣 かずの きそ',
+                subtitle: 'かずの かぞえかた・まとまり・ならびかた',
+                badgeBg: 'bg-amber-100 text-amber-800',
+                courses: [
+                    { id: 1, icon: '🍎', title: 'かずと なんばんめ', desc: '10までの かずと じゅんばん', color: 'from-pink-400 to-pink-500', border: 'border-pink-700', txt: 'text-white' },
+                    { id: 2, icon: '🧩', title: 'いくつと いくつ', desc: '10を 2つに わける れんしゅう', color: 'from-orange-400 to-orange-500', border: 'border-orange-700', txt: 'text-white' },
+                    { id: 13, icon: '🚃', title: 'かずの ならび', desc: '2とび・5とび・10とびの きまり', color: 'from-fuchsia-400 to-fuchsia-500', border: 'border-fuchsia-700', txt: 'text-white' }
+                ]
+            },
+            {
+                id: 'cat-calc',
+                title: '✏️ たしざん・ひきざん',
+                subtitle: '0の けいさん・くりあがり・くりさがり',
+                badgeBg: 'bg-emerald-100 text-emerald-800',
+                courses: [
+                    { id: 3, icon: '➕', title: 'たしざん (～10)', desc: '0を ふくむ こたえ10までの たしざん', color: 'from-green-400 to-green-500', border: 'border-green-700', txt: 'text-white' },
+                    { id: 4, icon: '➖', title: 'ひきざん (～10)', desc: '0を ふくむ 10までの ひきざん', color: 'from-teal-400 to-teal-500', border: 'border-teal-700', txt: 'text-white' },
+                    { id: 5, icon: '🚀', title: 'くりあがり たしざん', desc: 'こたえが 11〜18に なる けいさん', color: 'from-blue-400 to-blue-500', border: 'border-blue-700', txt: 'text-white' },
+                    { id: 6, icon: '🛸', title: 'くりさがり ひきざん', desc: '11〜18から ひく けいさん', color: 'from-indigo-400 to-indigo-500', border: 'border-indigo-700', txt: 'text-white' }
+                ]
+            },
+            {
+                id: 'cat-cherry',
+                title: '🍒 さくらんぼ けいさん とっくん',
+                subtitle: 'ステップ1から じゅんばんに マスターしよう！',
+                badgeBg: 'bg-rose-100 text-rose-800',
+                courses: [
+                    { id: 15, icon: '1️⃣', title: 'ステップ1：かずを わけよう', desc: 'さくらんぼの かたほうを かんがえる', color: 'from-rose-300 to-rose-400', border: 'border-rose-600', txt: 'text-gray-900' },
+                    { id: 16, icon: '2️⃣', title: 'ステップ2：10を つくろう', desc: 'たしざんで 10に なる かずを さがす', color: 'from-rose-400 to-rose-500', border: 'border-rose-700', txt: 'text-white' },
+                    { id: 17, icon: '3️⃣', title: 'ステップ3：さくらんぼ たしざん', desc: 'わけて → 10をつくって → こたえを出す', color: 'from-red-500 to-rose-600', border: 'border-red-800', txt: 'text-white' },
+                    { id: 18, icon: '4️⃣', title: 'ステップ4：10と いくつに わける', desc: 'ひきざんの じゅんび！10と バラに わける', color: 'from-pink-400 to-pink-500', border: 'border-pink-700', txt: 'text-white' },
+                    { id: 19, icon: '5️⃣', title: 'ステップ5：さくらんぼ ひきざん', desc: '10に わけて → 10から ひいて → こたえを出す', color: 'from-pink-500 to-fuchsia-600', border: 'border-fuchsia-800', txt: 'text-white' }
+                ]
+            },
+            {
+                id: 'cat-stepup',
+                title: '🌟 いろいろ ステップアップ',
+                subtitle: 'おおきい かず・かたち・とけい・ぶんしょうだい',
+                badgeBg: 'bg-purple-100 text-purple-800',
+                courses: [
+                    { id: 7, icon: '💯', title: 'おおきい かず', desc: '10の たばと ばらの かず', color: 'from-purple-400 to-purple-500', border: 'border-purple-700', txt: 'text-white' },
+                    { id: 8, icon: '🔺', title: 'かたち あそび', desc: 'まる・さんかく・しかくの とくちょう', color: 'from-amber-400 to-orange-400', border: 'border-orange-600', txt: 'text-white' },
+                    { id: 9, icon: '⏰', title: 'とけい の よみかた', desc: 'なんじ・なんじはんを よもう', color: 'from-yellow-400 to-amber-500', border: 'border-amber-700', txt: 'text-gray-900' },
+                    { id: 10, icon: '📖', title: 'ぶんしょうだい', desc: 'おはなしを よんで しきを たてよう', color: 'from-cyan-400 to-blue-500', border: 'border-blue-700', txt: 'text-white' }
+                ]
+            },
+            {
+                id: 'cat-challenge',
+                title: '🎮 チャレンジ・のうトレ',
+                subtitle: 'じつりょく だめし や パズルゲーム！',
+                badgeBg: 'bg-gray-200 text-gray-800',
+                courses: [
+                    { id: 12, icon: '🔍', title: 'むしくい・ぎゃくざん', desc: '？に はいる かずを さがそう', color: 'from-lime-400 to-green-500', border: 'border-green-700', txt: 'text-gray-900' },
+                    { id: 11, icon: '👑', title: 'ぜんぶのせ ミックス', desc: 'すべての 単元から ランダムしゅつだい', color: 'from-gray-700 to-gray-800', border: 'border-gray-950', txt: 'text-white' },
+                    { id: 14, icon: '🃏', title: '10を つくろう！', desc: 'たして 10に なる カードを けそう', color: 'from-red-500 to-orange-500', border: 'border-red-800', txt: 'text-white' }
+                ]
+            }
+        ];
+
+        const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const repeatStr = (str, n) => Array(n).fill(str).join('');
+        const formatTime = (secs) => `${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
+
+        // ==========================================
+        // 5. さくらんぼ計算ビジュアル生成ヘルパー
+        // ==========================================
+        function buildCherryAddDiagram(a, b) {
+            const need = 10 - a;
+            const remain = b - need;
+            return `
+            <div class="flex flex-col items-center bg-rose-50 border-2 border-rose-200 rounded-2xl p-3 my-1 w-full max-w-xs mx-auto shadow-sm">
+                <div class="text-xs font-black text-rose-500 mb-1">🍒 さくらんぼ けいさん</div>
+                <div class="flex items-start justify-center text-2xl sm:text-3xl font-black text-gray-800">
+                    <div class="px-2 py-1 bg-yellow-200 rounded-lg border border-yellow-400">${a}</div>
+                    <div class="px-2 py-1">＋</div>
+                    <div class="flex flex-col items-center">
+                        <div class="px-2 py-1 bg-white rounded-lg border-2 border-rose-400 text-rose-600">${b}</div>
+                        <div class="flex justify-center gap-6 -mt-1">
+                            <div class="cherry-branch-left"></div>
+                            <div class="cherry-branch-right"></div>
+                        </div>
+                        <div class="flex gap-3 mt-1 text-lg sm:text-xl">
+                            <span class="w-8 h-8 rounded-full bg-yellow-200 border-2 border-yellow-500 flex items-center justify-center text-yellow-900 font-black">${need}</span>
+                            <span class="w-8 h-8 rounded-full bg-rose-100 border-2 border-rose-400 flex items-center justify-center text-rose-700 font-black">${remain}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs sm:text-sm font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-rose-100 w-full text-center">
+                    <span class="bg-yellow-200 px-1.5 rounded">${a} と ${need} で 10</span> ＋ ${remain} ＝ <span class="text-rose-600 text-base font-black">${a + b}</span>
+                </div>
+            </div>`;
+        }
+
+        function buildCherrySubDiagram(a, b) {
+            const ones = a - 10;
+            const tenMinusB = 10 - b;
+            return `
+            <div class="flex flex-col items-center bg-pink-50 border-2 border-pink-200 rounded-2xl p-3 my-1 w-full max-w-xs mx-auto shadow-sm">
+                <div class="text-xs font-black text-pink-600 mb-1">🍒 さくらんぼ けいさん</div>
+                <div class="flex items-start justify-center text-2xl sm:text-3xl font-black text-gray-800">
+                    <div class="flex flex-col items-center">
+                        <div class="px-2 py-1 bg-white rounded-lg border-2 border-pink-400 text-pink-600">${a}</div>
+                        <div class="flex justify-center gap-6 -mt-1">
+                            <div class="cherry-branch-left"></div>
+                            <div class="cherry-branch-right"></div>
+                        </div>
+                        <div class="flex gap-3 mt-1 text-lg sm:text-xl">
+                            <span class="w-9 h-8 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center text-blue-800 font-black">10</span>
+                            <span class="w-8 h-8 rounded-full bg-pink-100 border-2 border-pink-400 flex items-center justify-center text-pink-700 font-black">${ones}</span>
+                        </div>
+                    </div>
+                    <div class="px-2 py-1">－</div>
+                    <div class="px-2 py-1 bg-blue-100 rounded-lg border border-blue-300 text-blue-900">${b}</div>
+                </div>
+                <div class="mt-2 text-xs sm:text-sm font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-pink-100 w-full text-center">
+                    <span class="bg-blue-100 px-1.5 rounded">10 － ${b} ＝ ${tenMinusB}</span> と ${ones} で <span class="text-pink-600 text-base font-black">${a - b}</span>
+                </div>
+            </div>`;
+        }
+
+        function buildCherrySplitDiagram(total, left, right) {
+            return `
+            <div class="flex flex-col items-center bg-rose-50 border-2 border-rose-200 rounded-2xl p-3 my-1 w-full max-w-xs mx-auto shadow-sm">
+                <div class="text-xs font-black text-rose-500 mb-1">🍒 かずの ぶんかい</div>
+                <div class="flex flex-col items-center text-2xl sm:text-3xl font-black text-gray-800">
+                    <div class="px-4 py-1 bg-white rounded-xl border-2 border-rose-400 text-rose-600">${total}</div>
+                    <div class="flex justify-center gap-8 -mt-1">
+                        <div class="cherry-branch-left"></div>
+                        <div class="cherry-branch-right"></div>
+                    </div>
+                    <div class="flex gap-4 mt-1 text-xl">
+                        <span class="w-10 h-10 rounded-full bg-yellow-200 border-2 border-yellow-500 flex items-center justify-center text-yellow-900 font-black">${left}</span>
+                        <span class="w-10 h-10 rounded-full bg-rose-100 border-2 border-rose-400 flex items-center justify-center text-rose-700 font-black">${right}</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs sm:text-sm font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-rose-100 w-full text-center">
+                    <b>${total}</b> は <b>${left}</b> と <b>${right}</b> に わけられるよ！
+                </div>
+            </div>`;
+        }
+
+        // ==========================================
+        // 6. 虫食い問題生成ヘルパー
+        // ==========================================
+        function makeMushikui(courseType) {
+            let a, b, isAdd;
+            if (courseType === 3) { a = rand(0, 9); b = rand(0, 10 - a); isAdd = true; } 
+            else if (courseType === 4) { a = rand(0, 10); b = rand(0, a); isAdd = false; } 
+            else if (courseType === 5) { a = rand(2, 9); b = rand(11 - a, 9); isAdd = true; } 
+            else if (courseType === 6) { a = rand(11, 18); b = rand(a - 9, 9); isAdd = false; } 
+            else { 
+                isAdd = Math.random() < 0.5;
+                if (isAdd) { a = rand(1, 9); b = rand(1, 9); } else { a = rand(10, 18); b = rand(1, 9); }
+            }
+            
+            let c = isAdd ? a + b : a - b;
+            let hideA = Math.random() < 0.5;
+            let ans = hideA ? a : b;
+            let sign = isAdd ? '＋' : '－';
+            
+            let visualText = hideA ? `？ ${sign} ${b} ＝ ${c}` : `${a} ${sign} ？ ＝ ${c}`;
+            let revLogic = isAdd ? (hideA ? `${c} － ${b} ＝ <b>${ans}</b>` : `${c} － ${a} ＝ <b>${ans}</b>`) 
+                                 : (hideA ? `${c} ＋ ${b} ＝ <b>${ans}</b>` : `${a} － ${c} ＝ <b>${ans}</b>`);
+
+            let expHtml = `
+                <div class="text-center">
+                    <div class="text-2xl font-black mb-2">${visualText}</div>
+                    <div class="text-base bg-yellow-50 p-3 rounded-xl border-2 border-yellow-200 text-left font-bold">
+                        ぎゃくから かんがえてみよう。<br>
+                        ${revLogic}
+                    </div>
+                </div>`;
+
+            return {
+                type: 'numpad', text: '？に はいる かずは？', visual: visualText,
+                hint1: `<div class="text-lg font-bold text-lime-700">「ぎゃく」から かんがえてみよう！</div>`,
+                hint2: isAdd ? 'こたえ から わかっている かずを ひいてみよう' : (hideA ? 'こたえ と ひいたかず を たそう' : 'もとの かず から こたえ を ひこう'),
+                explanation: expHtml, answer: ans
+            };
+        }
+
+        // ==========================================
+        // 7. 問題ジェネレーター (全単元)
+        // ==========================================
+        const generators = {
+            1: () => {
+                let isOrder = Math.random() < 0.5;
+                let c = rand(1, 10);
+                if (!isOrder) {
+                    return { 
+                        type: 'numpad', text: 'ぜんぶで いくつ？', visual: repeatStr('🍎', c), 
+                        hint1: repeatStr('🍎', c), hint2: 'ゆびで 1つずつ かぞえてみよう', 
+                        explanation: `<div class="text-2xl mb-2">${repeatStr('🍎', c)}</div><div>1, 2, 3... と かぞえると <b>${c}こ</b> だね。</div>`, 
+                        answer: c 
+                    };
+                } else {
+                    let isRight = Math.random() < 0.5;
+                    let arr = Array(c).fill('🟡');
+                    let target = rand(1, c);
+                    arr[isRight ? (c - target) : (target - 1)] = '🔴';
+                    let dirStr = isRight ? 'みぎ' : 'ひだり';
+                    return { 
+                        type: 'numpad', text: `あかい まるは\n${dirStr}から なんばんめ？`, visual: arr.join(' '), 
+                        hint1: arr.join(' '), hint2: `${dirStr}の はしから じゅんばんに かぞえてね`, 
+                        explanation: `<div class="text-2xl">${arr.join(' ')}</div><div class="mt-2 font-bold">${dirStr}から かぞえると <b>${target}ばんめ</b> だね。</div>`,
+                        answer: target 
+                    };
+                }
+            },
+            2: () => {
+                let a = rand(1, 9); let ans = 10 - a;
+                let html = `<div class="flex items-center gap-2 text-2xl font-bold bg-orange-50 p-3 rounded-xl border-2 border-orange-200"><div class="text-3xl text-orange-500">10</div><div>は</div><div class="text-3xl">${a}</div><div>と</div><div class="w-10 h-10 border-4 border-dashed border-gray-400 rounded bg-white flex items-center justify-center text-gray-400">？</div></div>`;
+                return { 
+                    type: 'numpad', text: 'しかくに はいる かずは？', visual: html, 
+                    hint1: `<span class="text-orange-500">${repeatStr('●', a)}</span><span class="text-gray-300">${repeatStr('○', ans)}</span>`, 
+                    hint2: `10に なるには、あと ${ans}こ たりないね。`,
+                    explanation: `<div>10は <b>${a}</b> と <b>${ans}</b> で できているよ。</div><div class="text-2xl mt-2"><span class="text-orange-500">${repeatStr('●', a)}</span><span class="text-blue-500">${repeatStr('●', ans)}</span></div>`, 
+                    answer: ans 
+                };
+            },
+            3: () => {
+                let a = rand(0, 10); let b = rand(0, 10 - a);
+                let ha = a === 0 ? '🫙' : repeatStr('🔴', a);
+                let hb = b === 0 ? '🫙' : repeatStr('🔵', b);
+                return {
+                    type: 'numpad', text: 'けいさん しよう', visual: `${a} ＋ ${b} ＝`,
+                    hint1: `<div class="text-xl">${ha} と ${hb}</div>`, hint2: '🫙 は 0 (からっぽ) だよ',
+                    explanation: `<div>${a} と ${b} を あわせると <b>${a+b}</b> だね。</div><div class="text-xl mt-2">${ha} ${hb}</div>`,
+                    answer: a + b
+                };
+            },
+            4: () => {
+                let a = rand(0, 10); let b = rand(0, a);
+                let ha = a === 0 ? '🫙' : repeatStr('🔴', a - b);
+                let hb = b === 0 ? '' : repeatStr('❌', b);
+                return {
+                    type: 'numpad', text: 'けいさん しよう', visual: `${a} － ${b} ＝`,
+                    hint1: a === 0 ? '🫙 (はじめから ないよ)' : `<div class="text-xl">${ha}${hb}</div>`, hint2: `${a}こ から ${b}こ とると、のこりは いくつ？`,
+                    explanation: `<div>${a}こ から ${b}こ なくなると、のこりは <b>${a-b}</b> だね。</div><div class="text-xl mt-2">${ha}</div>`,
+                    answer: a - b
+                };
+            },
+            5: () => {
+                let a = rand(6, 9); let b = rand(11 - a, 9); 
+                let need = 10 - a;
+                return {
+                    type: 'numpad', text: 'けいさん しよう', visual: `${a} ＋ ${b} ＝`,
+                    hint1: buildCherryAddDiagram(a, b),
+                    hint2: `${a}は あと「${need}」で 10に なるよ！`,
+                    explanation: buildCherryAddDiagram(a, b),
+                    answer: a + b
+                };
+            },
+            6: () => {
+                let a = rand(11, 18); let b = rand(a - 9, 9);
+                return {
+                    type: 'numpad', text: 'けいさん しよう', visual: `${a} － ${b} ＝`,
+                    hint1: buildCherrySubDiagram(a, b),
+                    hint2: `${a}を「10」と「${a-10}」に わけて、10から ${b}を ひこう！`,
+                    explanation: buildCherrySubDiagram(a, b),
+                    answer: a - b
+                };
+            },
+            7: () => {
+                let tens = rand(2, 9); let ones = rand(1, 9);
+                return {
+                    type: 'numpad', text: `10の まとまりが ${tens}こ、\nばらが ${ones}こ で？`, visual: '',
+                    hint1: `[10]が ${tens}こ、[1]が ${ones}こ`, hint2: 'じゅうの くらいが '+tens+'、いちの くらいが '+ones+' だよ',
+                    explanation: `10の たばが ${tens}こ で ${tens*10}。<br>ばらが ${ones}こ で <b>${tens*10 + ones}</b> だね。`,
+                    answer: tens * 10 + ones
+                };
+            },
+            8: () => {
+                const shapes = [{ name: 'まる', emoji: '🔴' }, { name: 'さんかく', emoji: '🔺' }, { name: 'しかく', emoji: '🟦' }];
+                let t = shapes[rand(0, 2)];
+                return {
+                    type: 'choice', text: 'この かたちは なあに？', visual: `<span class="text-7xl">${t.emoji}</span>`,
+                    hint1: 'かどは あるかな？', hint2: t.name + ' だよ',
+                    explanation: `${t.emoji} は <b>${t.name}</b> だね。`,
+                    answer: t.name, choices: ['まる', 'さんかく', 'しかく'].sort(() => Math.random() - 0.5)
+                };
+            },
+            9: () => {
+                let h = rand(1, 12); let isHalf = Math.random() < 0.5;
+                let ans = `${h}じ${isHalf ? 'はん' : ''}`;
+                let hRot = (h % 12) * 30 + (isHalf ? 15 : 0); let mRot = isHalf ? 180 : 0;
+                let clockHtml = `
+                <div class="relative w-32 h-32 rounded-full border-4 border-amber-500 bg-white shadow-md">
+                    <div class="absolute w-1.5 h-8 bg-pink-500 rounded-full origin-bottom" style="left: calc(50% - 3px); bottom: 50%; transform: rotate(${hRot}deg);"></div>
+                    <div class="absolute w-1 h-12 bg-blue-500 rounded-full origin-bottom" style="left: calc(50% - 2px); bottom: 50%; transform: rotate(${mRot}deg);"></div>
+                    <div class="absolute w-3 h-3 bg-gray-700 rounded-full" style="left: calc(50% - 6px); top: calc(50% - 6px);"></div>
+                </div>`;
+                let w1 = `${rand(1,12)}じ${Math.random()<0.5?'はん':''}`; let w2 = `${rand(1,12)}じ${Math.random()<0.5?'はん':''}`;
+                if (w1 === ans) w1 = '3じ'; if (w2 === ans || w2 === w1) w2 = '6じはん';
+                
+                return {
+                    type: 'choice', text: 'なんじ かな？', visual: clockHtml,
+                    hint1: 'みじかい はり(ピンク)が 「じ」 だよ', hint2: `ながい はりが ${isHalf?'下(はん)':'上(ぴったり)'}を むいているね`,
+                    explanation: `みじかい はりが ${h} の ところで、ながい はりが ${isHalf?'6(はん)':'12(ぴったり)'} だから、<b>${ans}</b> だよ。`,
+                    answer: ans, choices: [ans, w1, w2].sort(() => Math.random() - 0.5)
+                };
+            },
+            10: () => {
+                const stories = [
+                    { emoji: '🍎', unit: 'こ', get: 'もらいました。', lose: 'たべました。' },
+                    { emoji: '🚗', unit: 'だい', get: 'やってきました。', lose: 'はしりさりました。' },
+                    { emoji: '🐦', unit: 'わ', get: 'とんできました。', lose: 'とんでいきました。' },
+                    { emoji: '✏️', unit: 'ぽん', get: 'かいました。', lose: 'つかいました。' },
+                    { emoji: '🐟', unit: 'ひき', get: 'つれました。', lose: 'にげました。' }
+                ];
+                let s = stories[rand(0, stories.length - 1)];
+                let isAdd = Math.random() < 0.5;
+                let a, b, c;
+                if (isAdd) { a = rand(2, 8); b = rand(1, 10 - a); c = a + b; } 
+                else { a = rand(3, 10); b = rand(1, a - 1); c = a - b; }
+                
+                let text = isAdd ? 
+                    `${s.emoji}が ${a}${s.unit} あります。\n${b}${s.unit} ${s.get}\nぜんぶで なん${s.unit}に なった？` :
+                    `${s.emoji}が ${a}${s.unit} あります。\n${b}${s.unit} ${s.lose}\nのこりは なん${s.unit}？`;
+
+                let w1 = isAdd ? Math.round((a / c) * 100) : Math.round((c / a) * 100);
+                let w2 = 100 - w1;
+                
+                let barHtml = isAdd ? 
+                    `<div class="flex h-8 w-full rounded overflow-hidden shadow font-bold text-white text-sm leading-8 text-center mb-1">
+                        <div class="bg-blue-400" style="width: ${w1}%">はじめ ${a}</div><div class="bg-red-400" style="width: ${w2}%">ふえた ${b}</div>
+                     </div><div class="w-full text-center border-t-2 border-gray-400 pt-1 font-bold">ぜんぶで ${c}</div>` :
+                    `<div class="flex h-8 w-full rounded overflow-hidden shadow font-bold text-white text-sm leading-8 text-center mb-1">
+                        <div class="bg-purple-400" style="width: ${w1}%">のこり ${c}</div><div class="bg-gray-400" style="width: ${w2}%">へった ${b}</div>
+                     </div><div class="w-full text-center border-t-2 border-gray-400 pt-1 font-bold">はじめは ${a}</div>`;
+
+                let expHtml = `<div class="text-left font-bold mb-2">${isAdd ? '「ぜんぶで」は たしざん' : '「のこりは」は ひきざん'}</div>${barHtml}
+                               <div class="mt-3 text-lg bg-gray-100 p-2 rounded font-black">しき： ${isAdd ? `${a}＋${b}` : `${a}－${b}`} ＝ ${c}</div>`;
+
+                return {
+                    type: 'numpad', text: text, visual: '',
+                    hint1: isAdd ? 'ふえるから ＋ (たしざん) だよ' : 'へるから － (ひきざん) だよ',
+                    hint2: `しきは ${isAdd ? `${a} ＋ ${b}` : `${a} － ${b}`} だね`,
+                    explanation: expHtml, answer: c
+                };
+            },
+            13: () => {
+                let type = rand(0, 3);
+                let diff = [1, 2, 5, 10][type];
+                let startRange = [ [1, 5], [2, 10], [5, 20], [10, 50] ][type];
+                let start = rand(startRange[0], startRange[1]);
+                if (diff === 2) start = Math.floor(start / 2) * 2;
+                if (diff === 5) start = Math.floor(start / 5) * 5;
+                if (diff === 10) start = Math.floor(start / 10) * 10;
+                
+                let seq = [];
+                for (let i = 0; i < 5; i++) seq.push(start + i * diff);
+                
+                let hideIdx = rand(1, 4);
+                let ans = seq[hideIdx];
+                let vSeq = [...seq]; vSeq[hideIdx] = '？';
+                
+                let visualHtml = `<div class="flex gap-2 justify-center text-2xl sm:text-3xl font-black text-blue-600">
+                    ${vSeq.map(v => `<div class="bg-white px-2.5 py-1 rounded-xl shadow-sm border-2 border-blue-200">${v}</div>`).join('')}
+                </div>`;
+
+                return {
+                    type: 'numpad', text: '？に はいる かずは？', visual: visualHtml,
+                    hint1: 'いくつずつ ふえている かな？',
+                    hint2: `となりの かずと くらべてみよう。${diff} ずつ ふえているよ！`,
+                    explanation: `<div><b>${diff}</b> ずつ ふえる かずの ならび だね。</div><div class="text-xl mt-2">${seq[hideIdx-1]} の つぎだから <b>${ans}</b> だよ。</div>`,
+                    answer: ans
+                };
+            },
+            // コース15：さくらんぼ ステップ1（かずを わけよう）
+            15: () => {
+                let total = rand(3, 10);
+                let left = rand(1, total - 1);
+                let right = total - left;
+                return {
+                    type: 'cherry_step',
+                    cherryMode: 'split',
+                    data: { total, left, right },
+                    text: 'さくらんぼ ステップ1：かずを わけよう',
+                    visual: '',
+                    uniqueId: `cherry15_${total}_${left}`,
+                    hint1: `<div class="text-xl">${repeatStr('🍒', left)} と <span class="opacity-40">${repeatStr('🍒', right)}</span></div>`,
+                    hint2: `${total} から ${left} を とると、のこりは いくつ？`,
+                    explanation: buildCherrySplitDiagram(total, left, right),
+                    answer: [right],
+                    displayAnswer: `${right}`
+                };
+            },
+            // コース16：さくらんぼ ステップ2（10を つくろう）
+            16: () => {
+                let a = rand(5, 9);
+                let b = rand(11 - a, 9);
+                let need = 10 - a;
+                return {
+                    type: 'cherry_step',
+                    cherryMode: 'make10',
+                    data: { a, b, need },
+                    text: 'さくらんぼ ステップ2：10を つくろう',
+                    visual: '',
+                    uniqueId: `cherry16_${a}_${b}`,
+                    hint1: `<div class="text-base font-bold text-rose-700">${repeatStr('●', a)} に あと いくつで 10こ？</div>`,
+                    hint2: `${a} と「${need}」を たすと 10 に なるよ！`,
+                    explanation: buildCherryAddDiagram(a, b),
+                    answer: [need],
+                    displayAnswer: `${need}（${a}と${need}で10）`
+                };
+            },
+            // コース17：さくらんぼ ステップ3（たしざん かんせい！）
+            17: () => {
+                let a = rand(5, 9);
+                let b = rand(11 - a, 9);
+                let need = 10 - a;
+                let remain = b - need;
+                let sum = a + b;
+                return {
+                    type: 'cherry_step',
+                    cherryMode: 'add_full',
+                    data: { a, b, need, remain, sum },
+                    text: 'さくらんぼ ステップ3：たしざん しよう',
+                    visual: '',
+                    uniqueId: `cherry17_${a}_${b}`,
+                    hint1: `<div class="text-base font-bold text-rose-700">①まず ${a} と 10になる かずを いれよう！</div>`,
+                    hint2: `${b} を「${need}」と「${remain}」に わけて、10 と ${remain} で ${sum} だね！`,
+                    explanation: buildCherryAddDiagram(a, b),
+                    answer: [need, remain, sum],
+                    displayAnswer: `${sum}（${b}を ${need}と${remain}に わける）`
+                };
+            },
+            // コース18：さくらんぼ ステップ4（10と いくつに わける）
+            18: () => {
+                let a = rand(11, 18);
+                let b = rand(a - 9, 9);
+                let ones = a - 10;
+                return {
+                    type: 'cherry_step',
+                    cherryMode: 'sub_split',
+                    data: { a, b, ones },
+                    text: 'さくらんぼ ステップ4：10と いくつに わける？',
+                    visual: '',
+                    uniqueId: `cherry18_${a}_${b}`,
+                    hint1: `<div class="text-base font-bold text-pink-700">${a} は「10」と バラが いくつ？</div>`,
+                    hint2: `${a} を「10」と「${ones}」に わけて、あとで 10 から ${b} を ひくよ！`,
+                    explanation: buildCherrySubDiagram(a, b),
+                    answer: [ones],
+                    displayAnswer: `${ones}（10と${ones}に わける）`
+                };
+            },
+            // コース19：さくらんぼ ステップ5（ひきざん かんせい！）
+            19: () => {
+                let a = rand(11, 18);
+                let b = rand(a - 9, 9);
+                let ones = a - 10;
+                let tenMinusB = 10 - b;
+                let diff = a - b;
+                return {
+                    type: 'cherry_step',
+                    cherryMode: 'sub_full',
+                    data: { a, b, ones, tenMinusB, diff },
+                    text: 'さくらんぼ ステップ5：ひきざん しよう',
+                    visual: '',
+                    uniqueId: `cherry19_${a}_${b}`,
+                    hint1: `<div class="text-base font-bold text-pink-700">①まず ${a} を 10 と「いくつ」に わける？</div>`,
+                    hint2: `10 － ${b} ＝ ${tenMinusB}。それに バラの ${ones} を たすと ${diff} だね！`,
+                    explanation: buildCherrySubDiagram(a, b),
+                    answer: [ones, tenMinusB, diff],
+                    displayAnswer: `${diff}（10－${b}＝${tenMinusB} と ${ones}）`
+                };
+            }
+        };
+
+        // ==========================================
+        // 8. 問題配列生成 (15問 + 重複防止安全装置)
+        // ==========================================
+        function generateQuestions(courseId, count = 15) {
+            let qs = [];
+            let seen = new Set();
+            let maxTries = 400;
+
+            if (courseId === 'weakness') {
+                let pool = [...userData.mistakes].sort(() => Math.random() - 0.5);
+                qs = pool.slice(0, Math.min(count, pool.length));
+                while (qs.length < count && maxTries > 0) {
+                    maxTries--;
+                    let q = generators[rand(1, 10)]();
+                    let uKey = q.uniqueId || (q.text + '|' + q.visual);
+                    if (!seen.has(uKey) || maxTries < 100) {
+                        seen.add(uKey);
+                        qs.push(q);
+                    }
+                }
+                return qs;
+            }
+            
+            // コース3,4,5,6は15問中3問を虫食い化
+            let mushikuiIndices = new Set();
+            if ([3, 4, 5, 6].includes(courseId)) {
+                while (mushikuiIndices.size < 3) { mushikuiIndices.add(rand(0, count - 1)); }
+            }
+
+            const allMixPool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 15, 16, 17, 18, 19];
+
+            for (let i = 0; i < count; i++) {
+                let tries = 0;
+                let q = null;
+                while (tries < maxTries) {
+                    tries++;
+                    let cid = courseId === 11 ? allMixPool[rand(0, allMixPool.length - 1)] : courseId;
+                    
+                    if (courseId === 12) {
+                        q = makeMushikui(12);
+                    } else if (mushikuiIndices.has(i)) {
+                        q = makeMushikui(cid);
+                    } else {
+                        q = generators[cid]();
+                    }
+
+                    let uniqueKey = q.uniqueId || (q.text + '|' + q.visual);
+                    if (!seen.has(uniqueKey) || tries >= (maxTries - 10)) {
+                        seen.add(uniqueKey);
+                        qs.push(q);
+                        break;
+                    }
+                }
+            }
+            return qs;
+        }
+
+        // ==========================================
+        // 9. 状態管理・画面遷移
+        // ==========================================
+        let gameState = {
+            courseId: null, courseTitle: '', courseIcon: '📘',
+            questions: [], currentIndex: 0,
+            score: 0, startTime: 0, timerInterval: null, timeElapsed: 0,
+            combo: 0, currentMistakes: [], isTimerHidden: false,
+            hintStage: 0, currentInput: '', isAnswering: false,
+            stepValues: [], activeStep: 0
+        };
+
+        function showScreen(id) {
+            ['home-screen', 'play-screen', 'game10-screen', 'result-screen', 'review-screen', 'record-screen', 'header'].forEach(s => {
+                const el = document.getElementById(s);
+                if (el) el.classList.add('screen-hidden');
+            });
+            const target = document.getElementById(id);
+            if (target) target.classList.remove('screen-hidden');
+            if (id !== 'home-screen') {
+                document.getElementById('header').classList.remove('screen-hidden');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goHome() {
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+            gameState.isAnswering = false;
+            showScreen('home-screen');
+            renderHome();
+        }
+
+        function renderHome() {
+            // 通算プレイ回数
+            document.getElementById('total-plays-badge').innerText = userData.history.length;
+
+            // パートナー育成ステータス
+            const pInfo = getPartnerLevelInfo(userData.exp);
+            document.getElementById('partner-emoji').innerText = pInfo.emoji;
+            document.getElementById('partner-level').innerText = pInfo.level;
+            document.getElementById('partner-exp').innerText = userData.exp;
+            document.getElementById('partner-title-text').innerText = pInfo.name;
+
+            const prevThreshold = LEVELS[pInfo.level - 1] ? LEVELS[pInfo.level - 1].threshold : 0;
+            const range = pInfo.nextExp - prevThreshold;
+            const pct = range > 0 ? Math.min(100, Math.round(((userData.exp - prevThreshold) / range) * 100)) : 100;
+            document.getElementById('exp-bar').style.width = `${pct}%`;
+
+            // バッジ表示
+            const badgesContainer = document.getElementById('badges-container');
+            if (userData.badges.length === 0) {
+                badgesContainer.innerHTML = '<span class="text-xs font-bold text-gray-400">クリアして バッジを あつめよう！</span>';
+            } else {
+                badgesContainer.innerHTML = userData.badges.map(b => `<span title="${b.name}" class="bg-amber-50 border border-amber-200 rounded-lg px-1.5 py-0.5 text-base shadow-xs">${b.icon}</span>`).join('');
+            }
+
+            // にがて克服バッジ
+            const weakBadge = document.getElementById('weakness-count-badge');
+            if (userData.mistakes.length > 0) {
+                weakBadge.innerText = userData.mistakes.length;
+                weakBadge.classList.remove('hidden');
+            } else {
+                weakBadge.classList.add('hidden');
+            }
+
+            // カテゴリー別コース一覧の描画
+            const container = document.getElementById('course-categories-container');
+            container.innerHTML = courseCategories.map(cat => {
+                const cardsHtml = cat.courses.map(c => {
+                    const best = userData.courseBestTimes[c.id];
+                    const bestBadge = best !== undefined
+                        ? `<span class="mt-1.5 inline-block bg-black/20 ${c.txt} text-[11px] font-black px-2.5 py-0.5 rounded-full">👑 ベスト ${formatTime(best)}</span>`
+                        : '';
+                    return `
+                        <button onclick="startCourse(${c.id})" class="bg-gradient-to-br ${c.color} ${c.txt} p-3.5 rounded-2xl btn-pop border-b-4 ${c.border} text-left flex items-start gap-3 shadow-sm">
+                            <div class="text-3xl bg-white/25 w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-inner">
+                                ${c.icon}
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                <div class="font-black text-base sm:text-lg leading-snug">${c.title}</div>
+                                <div class="text-xs opacity-90 font-bold mt-0.5 leading-tight">${c.desc}</div>
+                                ${bestBadge}
+                            </div>
+                        </button>
+                    `;
+                }).join('');
+
+                return `
+                    <section class="bg-white/80 rounded-3xl p-4 shadow-sm border border-amber-100">
+                        <div class="flex flex-wrap items-center justify-between gap-1 mb-3 px-1">
+                            <h2 class="font-black text-lg text-gray-800">${cat.title}</h2>
+                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${cat.badgeBg}">${cat.subtitle}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            ${cardsHtml}
+                        </div>
+                    </section>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // 10. コース開始・タイマー管理
+        // ==========================================
+        function findCourseMeta(courseId) {
+            if (courseId === 'weakness') {
+                return { id: 'weakness', title: 'にがて こくふく', icon: '🔥' };
+            }
+            for (const cat of courseCategories) {
+                const found = cat.courses.find(c => c.id === courseId);
+                if (found) return found;
+            }
+            return { id: courseId, title: 'さんすう チャレンジ', icon: '📘' };
+        }
+
+        function startCourse(courseId) {
+            const meta = findCourseMeta(courseId);
+            gameState.courseId = courseId;
+            gameState.courseTitle = meta.title;
+            gameState.courseIcon = meta.icon;
+            gameState.score = 0;
+            gameState.currentIndex = 0;
+            gameState.combo = 0;
+            gameState.currentMistakes = [];
+            gameState.timeElapsed = 0;
+            gameState.isAnswering = false;
+
+            document.getElementById('header-icon').innerText = meta.icon;
+            document.getElementById('header-title').innerText = meta.title;
+
+            if (courseId === 14) {
+                startGame10();
+                return;
+            }
+
+            gameState.questions = generateQuestions(courseId, 15);
+            showScreen('play-screen');
+            startTimer('timer-display');
+            renderQuestion();
+        }
+
+        function retryCurrentCourse() {
+            if (gameState.courseId !== null) {
+                if (gameState.courseId === 'weakness' && userData.mistakes.length === 0) {
+                    showToast('にがてな もんだいは すべて クリアしたよ！');
+                    goHome();
+                    return;
+                }
+                startCourse(gameState.courseId);
+            } else {
+                goHome();
+            }
+        }
+
+        function startWeaknessMode() {
+            if (userData.mistakes.length === 0) {
+                showToast('いまは にがてな もんだいは ないよ！すごい！✨');
+                return;
+            }
+            startCourse('weakness');
+        }
+
+        function startTimer(displayId) {
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timeElapsed = 0;
+            updateTimerDisplay(displayId);
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeElapsed++;
+                updateTimerDisplay(displayId);
+            }, 1000);
+        }
+
+        function updateTimerDisplay(displayId) {
+            const el = document.getElementById(displayId);
+            if (!el) return;
+            if (displayId === 'timer-display' && gameState.isTimerHidden) {
+                el.innerText = '⏱ かくしちゅう';
+            } else {
+                el.innerText = `⏱ ${formatTime(gameState.timeElapsed)}`;
+            }
+        }
+
+        function toggleTimer() {
+            gameState.isTimerHidden = !gameState.isTimerHidden;
+            updateTimerDisplay('timer-display');
+        }
+
+        // ==========================================
+        // 11. 問題表示・さくらんぼステップUI・入力処理
+        // ==========================================
+        function renderQuestion() {
+            const total = gameState.questions.length;
+            const idx = gameState.currentIndex;
+            const q = gameState.questions[idx];
+
+            gameState.isAnswering = false;
+            gameState.hintStage = 0;
+            gameState.currentInput = '';
+
+            // 進捗バー
+            document.getElementById('progress-text').innerText = `${idx + 1} / ${total}もん`;
+            document.getElementById('progress-bar').style.width = `${Math.round((idx / total) * 100)}%`;
+
+            // コンボ表示
+            const comboEl = document.getElementById('combo-text');
+            if (gameState.combo >= 2) {
+                comboEl.innerText = `🔥 ${gameState.combo}れんぞく!`;
+                comboEl.classList.remove('opacity-0', 'scale-50');
+                comboEl.classList.add('opacity-100', 'scale-100');
+            } else {
+                comboEl.classList.add('opacity-0', 'scale-50');
+                comboEl.classList.remove('opacity-100', 'scale-100');
+            }
+
+            // ヒント初期化
+            const hintBtn = document.getElementById('btn-hint');
+            hintBtn.disabled = false;
+            hintBtn.innerText = '💡 ヒントを みる';
+            document.getElementById('hint-visual').classList.add('screen-hidden');
+            document.getElementById('hint-visual').innerHTML = q.hint1 || '';
+            document.getElementById('hint-text').classList.add('screen-hidden');
+            document.getElementById('hint-text').innerText = q.hint2 || '';
+
+            // 問題文
+            document.getElementById('q-text').innerText = q.text;
+
+            const visualEl = document.getElementById('q-visual');
+            const inputDisplayArea = document.getElementById('input-display-area');
+            const inputArea = document.getElementById('input-area');
+
+            if (q.type === 'cherry_step') {
+                // さくらんぼステップ穴埋めUI
+                inputDisplayArea.classList.add('screen-hidden');
+                gameState.stepValues = Array(q.answer.length).fill('');
+                gameState.activeStep = 0;
+                renderCherryInteractiveVisual(q);
+                renderNumpad(inputArea);
+            } else if (q.type === 'numpad') {
+                // 通常の数字入力問題
+                visualEl.innerHTML = q.visual;
+                inputDisplayArea.classList.remove('screen-hidden');
+                const disp = document.getElementById('input-display');
+                disp.innerText = '？';
+                disp.className = 'text-5xl font-black text-gray-400';
+                renderNumpad(inputArea);
+            } else if (q.type === 'choice') {
+                // 選択式問題
+                visualEl.innerHTML = q.visual;
+                inputDisplayArea.classList.add('screen-hidden');
+                inputArea.innerHTML = `
+                    <div class="grid grid-cols-1 gap-3 w-full">
+                        ${q.choices.map(ch => `
+                            <button onclick="checkChoiceAnswer('${ch}')" class="bg-gradient-to-b from-sky-400 to-blue-500 text-white font-black text-2xl py-4 px-6 rounded-2xl btn-pop border-b-4 border-blue-700 shadow-sm">
+                                ${ch}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function selectCherrySlot(slotIdx) {
+            if (gameState.isAnswering) return;
+            const q = gameState.questions[gameState.currentIndex];
+            if (!q || q.type !== 'cherry_step') return;
+            gameState.activeStep = slotIdx;
+            playCardClick();
+            renderCherryInteractiveVisual(q);
+        }
+
+        function renderCherryInteractiveVisual(q) {
+            const visualEl = document.getElementById('q-visual');
+            const d = q.data;
+            const vals = gameState.stepValues;
+            const active = gameState.activeStep;
+
+            const makeSlot = (slotIdx, labelText = '') => {
+                const val = vals[slotIdx] !== '' ? vals[slotIdx] : '？';
+                const isAct = active === slotIdx;
+                const filledCls = vals[slotIdx] !== '' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-400 bg-white text-gray-400';
+                const activeCls = isAct ? 'cherry-slot-active' : filledCls;
+                return `
+                    <div class="flex flex-col items-center">
+                        <button type="button" onclick="selectCherrySlot(${slotIdx})" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-4 font-black text-2xl sm:text-3xl flex items-center justify-center transition-all ${activeCls}">
+                            ${val}
+                        </button>
+                        ${labelText ? `<span class="text-[10px] font-black text-rose-600 mt-1">${labelText}</span>` : ''}
+                    </div>
+                `;
+            };
+
+            let html = '';
+            if (q.cherryMode === 'split') {
+                html = `
+                <div class="flex flex-col items-center bg-rose-50/80 border-2 border-rose-200 rounded-3xl p-4 w-full max-w-xs">
+                    <div class="px-5 py-1.5 bg-white rounded-2xl border-3 border-rose-400 text-rose-600 text-3xl sm:text-4xl font-black shadow-xs">${d.total}</div>
+                    <div class="flex justify-center gap-10 -mt-1">
+                        <div class="cherry-branch-left"></div>
+                        <div class="cherry-branch-right"></div>
+                    </div>
+                    <div class="flex items-start gap-6 mt-1">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-yellow-200 border-3 border-yellow-500 flex items-center justify-center text-yellow-900 font-black text-2xl sm:text-3xl">${d.left}</div>
+                        ${makeSlot(0, 'のこり')}
+                    </div>
+                </div>`;
+            } else if (q.cherryMode === 'make10') {
+                html = `
+                <div class="flex flex-col items-center bg-rose-50/80 border-2 border-rose-200 rounded-3xl p-4 w-full max-w-xs">
+                    <div class="flex items-start justify-center text-3xl sm:text-4xl font-black text-gray-800">
+                        <div class="px-3 py-1.5 bg-yellow-200 rounded-xl border-2 border-yellow-400">${d.a}</div>
+                        <div class="px-2 py-1.5">＋</div>
+                        <div class="flex flex-col items-center">
+                            <div class="px-3 py-1.5 bg-white rounded-xl border-2 border-rose-400 text-rose-600">${d.b}</div>
+                            <div class="flex justify-center gap-8 -mt-1">
+                                <div class="cherry-branch-left"></div>
+                                <div class="cherry-branch-right"></div>
+                            </div>
+                            <div class="flex items-center gap-4 mt-1">
+                                ${makeSlot(0, '10にする')}
+                                <div class="w-11 h-11 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-lg">・</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            } else if (q.cherryMode === 'add_full') {
+                html = `
+                <div class="flex flex-col items-center bg-rose-50/80 border-2 border-rose-200 rounded-3xl p-4 w-full max-w-sm">
+                    <div class="flex items-start justify-center text-3xl sm:text-4xl font-black text-gray-800">
+                        <div class="px-3 py-1.5 bg-yellow-200 rounded-xl border-2 border-yellow-400">${d.a}</div>
+                        <div class="px-2 py-1.5">＋</div>
+                        <div class="flex flex-col items-center">
+                            <div class="px-3 py-1.5 bg-white rounded-xl border-2 border-rose-400 text-rose-600">${d.b}</div>
+                            <div class="flex justify-center gap-8 -mt-1">
+                                <div class="cherry-branch-left"></div>
+                                <div class="cherry-branch-right"></div>
+                            </div>
+                            <div class="flex items-start gap-3 mt-1">
+                                ${makeSlot(0, '①10にする')}
+                                ${makeSlot(1, '②のこり')}
+                            </div>
+                        </div>
+                        <div class="px-2 py-1.5">＝</div>
+                        ${makeSlot(2, '③こたえ')}
+                    </div>
+                </div>`;
+            } else if (q.cherryMode === 'sub_split') {
+                html = `
+                <div class="flex flex-col items-center bg-pink-50/80 border-2 border-pink-200 rounded-3xl p-4 w-full max-w-xs">
+                    <div class="flex items-start justify-center text-3xl sm:text-4xl font-black text-gray-800">
+                        <div class="flex flex-col items-center">
+                            <div class="px-3 py-1.5 bg-white rounded-xl border-2 border-pink-400 text-pink-600">${d.a}</div>
+                            <div class="flex justify-center gap-8 -mt-1">
+                                <div class="cherry-branch-left"></div>
+                                <div class="cherry-branch-right"></div>
+                            </div>
+                            <div class="flex items-start gap-3 mt-1">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center text-blue-800 font-black text-xl sm:text-2xl">10</div>
+                                ${makeSlot(0, 'バラ')}
+                            </div>
+                        </div>
+                        <div class="px-2 py-1.5">－</div>
+                        <div class="px-3 py-1.5 bg-blue-100 rounded-xl border-2 border-blue-300 text-blue-900">${d.b}</div>
+                    </div>
+                </div>`;
+            } else if (q.cherryMode === 'sub_full') {
+                html = `
+                <div class="flex flex-col items-center bg-pink-50/80 border-2 border-pink-200 rounded-3xl p-4 w-full max-w-sm">
+                    <div class="flex items-start justify-center text-3xl sm:text-4xl font-black text-gray-800">
+                        <div class="flex flex-col items-center">
+                            <div class="px-3 py-1.5 bg-white rounded-xl border-2 border-pink-400 text-pink-600">${d.a}</div>
+                            <div class="flex justify-center gap-8 -mt-1">
+                                <div class="cherry-branch-left"></div>
+                                <div class="cherry-branch-right"></div>
+                            </div>
+                            <div class="flex items-start gap-3 mt-1">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center text-blue-800 font-black text-xl sm:text-2xl">10</div>
+                                ${makeSlot(0, '①バラ')}
+                            </div>
+                        </div>
+                        <div class="px-2 py-1.5">－</div>
+                        <div class="px-3 py-1.5 bg-blue-100 rounded-xl border-2 border-blue-300 text-blue-900">${d.b}</div>
+                        <div class="px-2 py-1.5">＝</div>
+                        ${makeSlot(2, '③こたえ')}
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-pink-200 flex items-center gap-2 text-lg sm:text-xl font-black text-blue-800">
+                        <span>10 － ${d.b} ＝</span>
+                        ${makeSlot(1, '②ひく')}
+                    </div>
+                </div>`;
+            }
+            visualEl.innerHTML = html;
+        }
+
+        function renderNumpad(container) {
+            const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            let html = `<div class="grid grid-cols-3 gap-2.5 w-full">`;
+            keys.forEach(k => {
+                html += `<button type="button" onclick="pressNum('${k}')" class="numpad-btn">${k}</button>`;
+            });
+            html += `
+                <button type="button" onclick="pressClear()" class="numpad-btn numpad-action">けす</button>
+                <button type="button" onclick="pressNum('0')" class="numpad-btn">0</button>
+                <button type="button" onclick="pressSubmit()" class="numpad-btn numpad-submit">こたえ</button>
+            </div>`;
+            container.innerHTML = html;
+        }
+
+        function pressNum(digit) {
+            if (gameState.isAnswering) return;
+            const q = gameState.questions[gameState.currentIndex];
+            if (!q) return;
+            playCardClick();
+
+            if (q.type === 'cherry_step') {
+                const idx = gameState.activeStep;
+                const expectedLen = String(q.answer[idx]).length;
+                let cur = gameState.stepValues[idx] || '';
+
+                if (cur.length >= expectedLen) {
+                    cur = digit;
+                } else {
+                    cur += digit;
+                }
+                gameState.stepValues[idx] = cur;
+
+                // 桁数が揃ったら自動で次の空欄スロットへ移動
+                if (cur.length >= expectedLen) {
+                    const nextEmpty = gameState.stepValues.findIndex((v, i) => i > idx && v === '');
+                    if (nextEmpty !== -1) {
+                        gameState.activeStep = nextEmpty;
+                    } else {
+                        const anyEmpty = gameState.stepValues.findIndex(v => v === '');
+                        if (anyEmpty !== -1) gameState.activeStep = anyEmpty;
+                    }
+                }
+                renderCherryInteractiveVisual(q);
+            } else if (q.type === 'numpad') {
+                if (gameState.currentInput.length >= 3) return;
+                if (gameState.currentInput === '0') {
+                    gameState.currentInput = digit;
+                } else {
+                    gameState.currentInput += digit;
+                }
+                const disp = document.getElementById('input-display');
+                disp.innerText = gameState.currentInput;
+                disp.className = 'text-5xl font-black text-blue-600';
+            }
+        }
+
+        function pressClear() {
+            if (gameState.isAnswering) return;
+            const q = gameState.questions[gameState.currentIndex];
+            if (!q) return;
+            playCardClick();
+
+            if (q.type === 'cherry_step') {
+                let idx = gameState.activeStep;
+                if (gameState.stepValues[idx] !== '') {
+                    gameState.stepValues[idx] = '';
+                } else if (idx > 0) {
+                    idx--;
+                    gameState.activeStep = idx;
+                    gameState.stepValues[idx] = '';
+                }
+                renderCherryInteractiveVisual(q);
+            } else if (q.type === 'numpad') {
+                gameState.currentInput = '';
+                const disp = document.getElementById('input-display');
+                disp.innerText = '？';
+                disp.className = 'text-5xl font-black text-gray-400';
+            }
+        }
+
+        function pressSubmit() {
+            if (gameState.isAnswering) return;
+            const q = gameState.questions[gameState.currentIndex];
+            if (!q) return;
+
+            if (q.type === 'cherry_step') {
+                const emptyIdx = gameState.stepValues.findIndex(v => v === '');
+                if (emptyIdx !== -1) {
+                    gameState.activeStep = emptyIdx;
+                    renderCherryInteractiveVisual(q);
+                    showToast('まだ あいている まるが あるよ！');
+                    return;
+                }
+                const userNums = gameState.stepValues.map(v => parseInt(v, 10));
+                const isCorrect = q.answer.every((ansVal, i) => ansVal === userNums[i]);
+                const userAnsStr = `${userNums[userNums.length - 1]}（いれたかず: ${userNums.join(' → ')}）`;
+                handleAnswerResult(isCorrect, userAnsStr);
+            } else if (q.type === 'numpad') {
+                if (gameState.currentInput === '') {
+                    showToast('すうじを いれてから おしてね！');
+                    return;
+                }
+                const userVal = parseInt(gameState.currentInput, 10);
+                handleAnswerResult(userVal === q.answer, String(userVal));
+            }
+        }
+
+        function checkChoiceAnswer(choice) {
+            if (gameState.isAnswering) return;
+            const q = gameState.questions[gameState.currentIndex];
+            handleAnswerResult(choice === q.answer, choice);
+        }
+
+        function showHint() {
+            const btn = document.getElementById('btn-hint');
+            if (gameState.hintStage === 0) {
+                gameState.hintStage = 1;
+                document.getElementById('hint-visual').classList.remove('screen-hidden');
+                btn.innerText = '💡 もういちど ヒント（やりかた）';
+            } else if (gameState.hintStage === 1) {
+                gameState.hintStage = 2;
+                document.getElementById('hint-text').classList.remove('screen-hidden');
+                btn.innerText = '💡 ヒント ひょうじちゅう';
+                btn.disabled = true;
+            }
+        }
+
+        // キーボード入力対応
+        document.addEventListener('keydown', (e) => {
+            const playScreen = document.getElementById('play-screen');
+            if (!playScreen || playScreen.classList.contains('screen-hidden')) return;
+            if (gameState.isAnswering) return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                pressNum(e.key);
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                pressClear();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                pressSubmit();
+            }
+        });
+
+        // ==========================================
+        // 12. 正誤判定・フィードバック演出
+        // ==========================================
+        function handleAnswerResult(isCorrect, userAnsStr) {
+            gameState.isAnswering = true;
+            const q = gameState.questions[gameState.currentIndex];
+            const fb = document.getElementById('feedback');
+
+            fb.classList.remove('screen-hidden', 'feedback-anim');
+            void fb.offsetWidth; // リフロー強制でアニメーション再発火
+
+            if (isCorrect) {
+                playCorrect();
+                gameState.score++;
+                gameState.combo++;
+                fb.innerText = '⭕️';
+                fb.style.color = '#ef4444';
+
+                // にがてリストにあれば削除
+                const qKey = q.uniqueId || (q.text + '|' + q.visual);
+                userData.mistakes = userData.mistakes.filter(m => (m.uniqueId || (m.text + '|' + m.visual)) !== qKey);
+            } else {
+                playWrong();
+                gameState.combo = 0;
+                fb.innerText = '❌';
+                fb.style.color = '#3b82f6';
+
+                const mistakeRecord = { ...q, userAns: userAnsStr };
+                gameState.currentMistakes.push(mistakeRecord);
+
+                const qKey = q.uniqueId || (q.text + '|' + q.visual);
+                const exists = userData.mistakes.some(m => (m.uniqueId || (m.text + '|' + m.visual)) === qKey);
+                if (!exists) {
+                    userData.mistakes.unshift(mistakeRecord);
+                    if (userData.mistakes.length > 30) userData.mistakes.pop();
+                }
+            }
+
+            fb.classList.add('feedback-anim');
+
+            setTimeout(() => {
+                fb.classList.add('screen-hidden');
+                gameState.currentIndex++;
+                if (gameState.currentIndex < gameState.questions.length) {
+                    renderQuestion();
+                } else {
+                    finishCourse(gameState.score, gameState.questions.length);
+                }
+            }, 900);
+        }
+
+        // ==========================================
+        // 13. コース14：10をつくろう！ペア探しゲーム
+        // ==========================================
+        let game10State = { cards: [], selectedIdx: null, matchedPairs: 0, lock: false };
+
+        function startGame10() {
+            showScreen('game10-screen');
+            startTimer('game10-timer');
+
+            const pairs = [];
+            for (let i = 0; i < 6; i++) {
+                const a = rand(1, 9);
+                pairs.push(a, 10 - a);
+            }
+            game10State = {
+                cards: pairs.sort(() => Math.random() - 0.5),
+                selectedIdx: null,
+                matchedPairs: 0,
+                lock: false
+            };
+            renderGame10Board();
+        }
+
+        function renderGame10Board() {
+            const board = document.getElementById('game10-board');
+            board.innerHTML = game10State.cards.map((num, idx) => {
+                if (num === null) {
+                    return `<div class="h-24 sm:h-28 rounded-2xl bg-amber-100/40 border-2 border-dashed border-amber-200"></div>`;
+                }
+                const isSelected = game10State.selectedIdx === idx;
+                const cls = isSelected
+                    ? 'bg-yellow-300 border-yellow-500 text-yellow-900 scale-105 ring-4 ring-yellow-300'
+                    : 'bg-white border-orange-200 text-gray-800 hover:bg-orange-50';
+                return `
+                    <button onclick="selectGame10Card(${idx})" class="h-24 sm:h-28 rounded-2xl border-4 font-black text-4xl sm:text-5xl btn-pop flex items-center justify-center shadow-sm ${cls}">
+                        ${num}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectGame10Card(idx) {
+            if (game10State.lock || game10State.cards[idx] === null) return;
+            playCardClick();
+
+            if (game10State.selectedIdx === null) {
+                game10State.selectedIdx = idx;
+                renderGame10Board();
+                return;
+            }
+
+            if (game10State.selectedIdx === idx) {
+                game10State.selectedIdx = null;
+                renderGame10Board();
+                return;
+            }
+
+            const firstIdx = game10State.selectedIdx;
+            const sum = game10State.cards[firstIdx] + game10State.cards[idx];
+
+            if (sum === 10) {
+                playCorrect();
+                game10State.cards[firstIdx] = null;
+                game10State.cards[idx] = null;
+                game10State.selectedIdx = null;
+                game10State.matchedPairs++;
+                renderGame10Board();
+
+                if (game10State.matchedPairs >= 6) {
+                    setTimeout(() => finishCourse(15, 15), 400);
+                }
+            } else {
+                playWrong();
+                game10State.lock = true;
+                game10State.selectedIdx = idx;
+                renderGame10Board();
+                setTimeout(() => {
+                    game10State.selectedIdx = null;
+                    game10State.lock = false;
+                    renderGame10Board();
+                }, 450);
+            }
+        }
+
+        // ==========================================
+        // 14. リザルト・解説・記録画面
+        // ==========================================
+        function finishCourse(score, total) {
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+
+            const elapsed = gameState.timeElapsed;
+            const isPerfect = score === total;
+
+            // 経験値計算
+            let gainedExp = score * 10;
+            if (isPerfect) gainedExp += 30;
+            if (elapsed <= 60 && score >= 12) gainedExp += 20;
+
+            const oldLvl = getPartnerLevelInfo(userData.exp).level;
+            userData.exp += gainedExp;
+            const newLvl = getPartnerLevelInfo(userData.exp).level;
+            const isLevelUp = newLvl > oldLvl;
+
+            // ベストタイム判定（12問以上正解で記録対象）
+            let isNewRecord = false;
+            if (score >= 12 && gameState.courseId !== 'weakness') {
+                const prevBest = userData.courseBestTimes[gameState.courseId];
+                if (prevBest === undefined || elapsed < prevBest) {
+                    userData.courseBestTimes[gameState.courseId] = elapsed;
+                    isNewRecord = true;
+                }
+            }
+
+            // 履歴保存
+            const now = new Date();
+            const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            userData.history.unshift({
+                date: dateStr,
+                courseTitle: gameState.courseTitle,
+                courseIcon: gameState.courseIcon,
+                score: score,
+                total: total,
+                time: elapsed
+            });
+            if (userData.history.length > 50) userData.history.pop();
+
+            // バッジ付与チェック
+            const grantBadge = (id, icon, name) => {
+                if (!userData.badges.some(b => b.id === id)) {
+                    userData.badges.push({ id, icon, name });
+                }
+            };
+            grantBadge('first_clear', '🏅', 'はじめての クリア！');
+            if (isPerfect) grantBadge('perfect', '👑', 'まんてん マスター！');
+            if (elapsed <= 45 && isPerfect) grantBadge('speed', '⚡', 'でんこうせっか スピードスター！');
+            if (userData.history.length >= 10) grantBadge('effort10', '🎖️', '10かい チャレンジ！');
+            if ([15, 16, 17, 18, 19].includes(gameState.courseId) && isPerfect) {
+                grantBadge('cherry_master', '🍒', 'さくらんぼ めいじん！');
+            }
+
+            saveData();
+
+            // リザルト画面描画
+            showScreen('result-screen');
+            document.getElementById('result-score').innerText = score;
+            document.getElementById('result-total').innerText = `/${total}`;
+            document.getElementById('result-time').innerText = formatTime(elapsed);
+            document.getElementById('gained-exp').innerText = gainedExp;
+
+            const newRecEl = document.getElementById('new-record-badge');
+            if (isNewRecord) newRecEl.classList.remove('screen-hidden');
+            else newRecEl.classList.add('screen-hidden');
+
+            const lvlUpEl = document.getElementById('levelup-msg');
+            if (isLevelUp) {
+                lvlUpEl.classList.remove('screen-hidden');
+                playLevelUp();
+            } else {
+                lvlUpEl.classList.add('screen-hidden');
+            }
+
+            const iconEl = document.getElementById('result-icon');
+            const titleEl = document.getElementById('result-title');
+            if (isPerfect) {
+                iconEl.innerText = '🏆';
+                titleEl.innerText = 'パーフェクト！すごい！';
+            } else if (score >= 10) {
+                iconEl.innerText = '🌟';
+                titleEl.innerText = 'よく がんばったね！';
+            } else {
+                iconEl.innerText = '🐥';
+                titleEl.innerText = 'つぎは もっと できるよ！';
+            }
+
+            const reviewBtn = document.getElementById('btn-review-mistakes');
+            if (gameState.currentMistakes.length > 0) {
+                reviewBtn.classList.remove('screen-hidden');
+            } else {
+                reviewBtn.classList.add('screen-hidden');
+            }
+        }
+
+        function showReviewScreen() {
+            showScreen('review-screen');
+            const list = document.getElementById('review-list');
+            list.innerHTML = gameState.currentMistakes.map((m, idx) => {
+                const ansText = m.displayAnswer ? m.displayAnswer : m.answer;
+                return `
+                    <div class="bg-white rounded-3xl p-5 shadow-md border-2 border-rose-100 fade-in">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="bg-rose-100 text-rose-700 font-black text-xs px-3 py-1 rounded-full">まちがえた もんだい ${idx + 1}</span>
+                            <span class="text-xs font-bold text-gray-400">きみの こたえ：${m.userAns}</span>
+                        </div>
+                        <div class="font-black text-lg text-gray-800 mb-3 whitespace-pre-line">${m.text} ${m.type === 'numpad' ? m.visual : ''}</div>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 font-black text-emerald-700 mb-3">
+                            ⭕️ ただしい こたえ： <span class="text-xl">${ansText}</span>
+                        </div>
+                        <div class="text-sm text-gray-700 leading-relaxed">
+                            ${m.explanation}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showRecords() {
+            showScreen('record-screen');
+            const hist = userData.history;
+            document.getElementById('record-total-count').innerText = hist.length;
+            document.getElementById('record-perfect-count').innerText = hist.filter(h => h.score === h.total).length;
+
+            const tbody = document.getElementById('record-table-body');
+            if (hist.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-gray-400 font-bold">まだ きろくが ないよ。<br>コースに チャレンジしよう！</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = hist.map(h => {
+                const isPerf = h.score === h.total;
+                return `
+                    <tr class="border-t border-gray-100">
+                        <td class="p-3">
+                            <div class="font-black text-gray-800">${h.courseIcon} ${h.courseTitle}</div>
+                            <div class="text-[11px] text-gray-400 font-bold">${h.date}</div>
+                        </td>
+                        <td class="p-3 text-center font-black ${isPerf ? 'text-pink-500' : 'text-blue-600'}">
+                            ${isPerf ? '👑 ' : ''}${h.score}/${h.total}
+                        </td>
+                        <td class="p-3 text-center font-bold text-gray-600">
+                            ${formatTime(h.time)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
