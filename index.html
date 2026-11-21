@@ -1,35 +1,16 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>べんきょうあそび</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 40px 20px;
-      background: #fff7e8;
-      font-family: sans-serif;
-      text-align: center;
-    }
-    h1 { color: #ef8c42; }
-    .card {
-      max-width: 320px;
-      margin: 24px auto;
-      padding: 24px;
-      border-radius: 20px;
-      background: white;
-      box-shadow: 0 4px 12px #0001;
-    }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>べんきょうあそび</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color:#40382f;background:#fff7e9}*{box-sizing:border-box}body{margin:0}main{max-width:800px;margin:0 auto;padding:52px 20px 72px}header{text-align:center;margin-bottom:38px}h1{font-size:clamp(29px,6vw,43px);color:#e67e36;margin:0 0 16px;letter-spacing:.04em}header p{font-size:19px;margin:0}.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.game{display:flex;flex-direction:column;align-items:center;text-decoration:none;color:inherit;background:#fff;border-radius:25px;padding:22px 14px 25px;box-shadow:0 7px 22px #69421b13;border:3px solid transparent;transition:transform .15s,border-color .15s}.game:hover,.game:focus-visible{transform:translateY(-3px);border-color:#e9a56b;outline:none}.picture{display:grid;place-items:center;width:100%;height:145px;border-radius:18px;font-size:75px;margin-bottom:18px}.blue{background:#e8f2ff}.green{background:#e8f6e9}.game h2{font-size:clamp(19px,3.6vw,26px);margin:0 0 8px;text-align:center}.tag{font-size:15px;color:#716a60;margin:0}.note{text-align:center;color:#8b7966;margin:36px 0 0;font-size:15px}@media(max-width:480px){main{padding-top:38px}.games{gap:12px}.game{padding:12px 10px 18px;border-radius:20px}.picture{height:110px;font-size:57px}.game h2{font-size:18px}}
+</style>
 </head>
-<body>
-  <h1>🌟 べんきょうあそび 🌟</h1>
-  <p>きょうは なにして あそぶ？</p>
-  <div class="card">
-    <h2>🎮 あたらしいゲーム</h2>
-    <p>もうすぐ あそべるよ！</p>
-  </div>
-</body>
-</html>
+<body><main>
+<header><h1>🌟 べんきょうあそび 🌟</h1><p>きょうは なにして あそぶ？</p></header>
+<nav class="games" aria-label="ゲームをえらぶ">
+<a class="game" href="/kokugo/tenioha/"><div class="picture blue" aria-hidden="true">📖</div><h2>てにをは</h2><p class="tag">こくご</p></a>
+<a class="game" href="/kyoyo/quiz/"><div class="picture green" aria-hidden="true">🌏</div><h2>ものしりクイズ</h2><p class="tag">きょうよう</p></a>
+</nav><p class="note">これからも ゲームが ふえるよ！</p>
+</main></body></html>
