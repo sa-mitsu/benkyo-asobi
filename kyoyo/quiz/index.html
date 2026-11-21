@@ -1,0 +1,79 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ものしりクイズ</title><style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#243047;background:#f6f8ff}*{box-sizing:border-box}body{margin:0;padding:20px}main{max-width:650px;margin:0 auto}.panel{background:white;border-radius:24px;padding:24px;box-shadow:0 8px 30px #24304712}h1{font-size:26px;margin:0 0 8px}.muted{color:#69748b;font-size:14px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.illustration{height:142px;display:flex;align-items:center;justify-content:center;background:#f7fbff;border-radius:18px;margin:15px 0 0}.illustration svg{width:210px;height:130px;max-width:90%}.question{background:#eef5ff;border-radius:18px;padding:25px 15px;text-align:center;font-size:25px;line-height:1.9;margin:10px 0 18px;font-weight:750}.term{border:0;border-bottom:3px dotted #3179dd;background:transparent;color:#236acb;font:inherit;padding:0 2px;cursor:pointer}.choices{display:grid;gap:11px}.choice{background:#fff;border:2px solid #dce3ef;border-radius:14px;padding:15px;text-align:left;font-size:20px;cursor:pointer;color:inherit}.choice:disabled{cursor:default}.choice.correct{border-color:#2aaf78;background:#e8fbf1}.choice.wrong{border-color:#e87878;background:#fff0f0}.explain,.dictionary{padding:17px;border-radius:15px;margin:15px 0;line-height:1.75}.explain{background:#eef9f3}.dictionary{background:#fff8df;border:1px solid #efda9e}.dictionary h2{font-size:19px;margin:0 0 7px}.next{border:0;background:#366be7;color:white;border-radius:14px;padding:14px 20px;font-size:18px;font-weight:700;cursor:pointer;width:100%;margin-top:15px}.smallbtn{border:0;background:#e9efff;border-radius:10px;padding:9px;cursor:pointer}.footer{font-size:13px;color:#69748b;margin-top:15px;text-align:center}.score{font-size:22px;text-align:center;padding:20px}button:focus-visible{outline:3px solid #ffae37;outline-offset:3px} [hidden]{display:none!important}
+</style></head><body><main><section class="panel"><div class="top"><h1>🌟 ものしりクイズ</h1><span id="progress" class="muted"></span></div><div class="muted">あおい ことばを おすと、「ことばの いみ」が わかるよ。</div><div id="illustration" class="illustration" aria-hidden="true"></div><div id="question" class="question"></div><div id="dictionary" class="dictionary" hidden></div><div id="choices" class="choices"></div><div id="explain" class="explain" hidden></div><button id="next" class="next" hidden>つぎの もんだい →</button><div class="footer">5もんで おしまい。なんどでも あそべるよ！</div></section></main><script>
+const words={
+'しゅと':'くにの せいじの ちゅうしんとなる まちの こと。たとえば、フランスの しゅとは パリです。',
+'たいへいよう':'ちきゅうに ある、とても おおきな うみの なまえだよ。にほんの ひがしがわにも ひろがっているよ。',
+'ほにゅうるい':'あかちゃんに おかあさんの おちちを のませて そだてる どうぶつの なかまだよ。',
+'じょうはつ':'みずが めに みえない すいじょうきに なって、くうきに まざる ことだよ。',
+'こっかい':'にほんの ほうりつや よさんなどを はなしあう ところだよ。',
+'ほうりつ':'みんなが あんしんして くらせるように、くにが きめた きまりだよ。',
+'じしん':'じめんが ゆれる ことだよ。おおきく ゆれると ものが たおれることも あるよ。',
+'ほうい':'ひがし・にし・みなみ・きた など、むきを あらわす ことばだよ。',
+'せかいいさん':'せかいじゅうの ひとで たいせつに まもっていこうと きめた ばしょや たてものなどだよ。',
+'でんとう':'むかしから たいせつに うけつがれてきた ことや ものだよ。',
+'しょくぶつ':'きや くさ、はな などの なかまだよ。ひかりを つかって えいようを つくるものが おおいよ。',
+'きせつ':'はる・なつ・あき・ふゆ の ような、いちねんの なかの じきの ことだよ。',
+'たいよう':'ひるまの そらを あかるく てらす ほしだよ。ちきゅうに ひかりと あたたかさを とどけるよ。',
+'せんきょ':'だれに みんなの だいひょうに なってもらうか、とうひょうして きめることだよ。',
+'きゅうきゅうしゃ':'びょうきや けがで きんきゅうの てあてが ひつような ひとを はこぶ くるまだよ。',
+'きたはんきゅう':'ちきゅうを まんなかで わけたときの、きたがわの はんぶんだよ。',
+'こうつうあんぜん':'どうろで じこに あわないように、きまりを まもって きをつけることだよ。',
+'はつめい':'それまで なかった どうぐや しくみを、あたらしく つくりだすことだよ。',
+'みんしゅしゅぎ':'みんなの いけんを たいせつにして、しゃかいの ことを きめていく かんがえかただよ。',
+'きこう':'ある ばしょの、ながい あいだの てんきや きおんの とくちょうだよ。'
+};
+const bank=[
+{cat:'にほんと せかい',q:'にほんの {しゅと}は どこ？',a:['とうきょう','おおさか','きょうと'],ok:0,why:'とうきょうが にほんの しゅとだよ。こっかいぎじどうや、くにの しごとを する ところが たくさん あるんだ。'},
+{cat:'にほんと せかい',q:'せかいで いちばん おおきな うみは？',a:['インドよう','たいへいよう','たいせいよう'],ok:1,why:'たいへいようが いちばん おおきいよ。にほんの ひがしにも ひろがっているんだ。'},
+{cat:'にほんと せかい',q:'にほんの こっきは どんな もよう？',a:['あかい まる','あおい ほし','みどりの しかく'],ok:0,why:'しろい じに あかい まるが あるよ。ひのまる とも よばれるんだ。'},
+{cat:'しぜんと かがく',q:'つきが ひかって みえるのは なぜ？',a:['じぶんで ひかるから','たいようの ひかりを はねかえすから','ほしが てらすから'],ok:1,why:'つきは たいようの ひかりを はねかえして ひかって みえるよ。'},
+{cat:'しぜんと かがく',q:'みずを ひやして こおらせると なにに なる？',a:['こおり','ゆげ','すな'],ok:0,why:'みずは ひえると こおりに なるよ。あたためると また みずに もどるんだ。'},
+{cat:'しぜんと かがく',q:'あめが ふるのは どこから？',a:['くも','つき','ほし'],ok:0,why:'くもの なかの ちいさな みずの つぶが あつまって、おおきくなると あめとして おちてくるよ。'},
+{cat:'いきもの',q:'イルカは なんの なかま？',a:['さかな','とり','ほにゅうるい'],ok:2,why:'イルカは ほにゅうるいだよ。あかちゃんを うんで、おちちで そだてるんだ。'},
+{cat:'いきもの',q:'チョウの あかちゃんは なに？',a:['おたまじゃくし','いもむし','こざかな'],ok:1,why:'チョウは たまごから うまれて、ようちゅう（いもむし）、さなぎ、せいちゅうに なるよ。'},
+{cat:'いきもの',q:'{しょくぶつ}が そだつために ひつような ものは？',a:['ひかり','おかし','プラスチック'],ok:0,why:'おおくの しょくぶつは、たいようの ひかりを つかって えいようを つくるよ。みずも たいせつだね。'},
+{cat:'くらしと しゃかい',q:'かじを みつけたとき、にほんで かける でんわばんごうは？',a:['110','119','117'],ok:1,why:'119は しょうぼうしゃや きゅうきゅうしゃを よぶ ばんごうだよ。あぶないときは まず おとなに しらせよう。'},
+{cat:'くらしと しゃかい',q:'{こっかい}では なにを はなしあう？',a:['くにの きまり','あしたの きゅうしょく','おうちの ばんごはん'],ok:0,why:'こっかいでは、ほうりつや くにの おかねの つかいかたなどを はなしあうよ。'},
+{cat:'くらしと しゃかい',q:'しんごうが あかの とき、どうする？',a:['とまる','はしって わたる','ゆっくり わたる'],ok:0,why:'あかは とまれ の あいずだよ。あおでも くるまが こないか たしかめてから わたろう。'},
+{cat:'ぶんかと れきし',q:'にほんで おしょうがつに たべる ことが おおい りょうりは？',a:['おせち','ピザ','カレー'],ok:0,why:'おせちは おしょうがつの とくべつな りょうりだよ。ひとつひとつの たべものに ねがいが こめられているんだ。'},
+{cat:'ぶんかと れきし',q:'むかし、でんわが ないころ、はなれた ひとに しらせを とどける ほうほうは？',a:['てがみ','テレビでんわ','メール'],ok:0,why:'むかしから てがみで きもちや しらせを とどけていたよ。ひとが はこんだり、ゆうびんで とどけたりしたんだ。'},
+{cat:'ぶんかと れきし',q:'たなばたは なんがつ なのか？',a:['3がつ 3にち','7がつ 7にち','12がつ 25にち'],ok:1,why:'たなばたは 7がつ 7にち。たんざくに ねがいごとを かく ふうしゅうが あるよ。ちいきによって 8がつに おいわいすることも あるんだ。'},
+{cat:'にほんと せかい',q:'にほんが あるのは どの たいりくの ちかく？',a:['アジア','アフリカ','ヨーロッパ'],ok:0,why:'にほんは アジアの ひがしがわに ある しまぐにだよ。'},
+{cat:'しぜんと かがく',q:'たいようが しずむのは どの {ほうい}？',a:['ひがし','にし','きた'],ok:1,why:'たいようは だいたい ひがしから のぼり、にしに しずむよ。'},
+{cat:'いきもの',q:'カエルの あかちゃんは なに？',a:['おたまじゃくし','いもむし','ひよこ'],ok:0,why:'カエルは おたまじゃくしから そだつよ。あしが はえて、しっぽが みじかくなっていくんだ。'},
+{cat:'くらしと しゃかい',q:'{じしん}で おおきく ゆれたら まず どうする？',a:['あたまを まもる','まどに ちかづく','たかい ところに のぼる'],ok:0,why:'まず あたまを まもろう。ものが おちたり たおれたり するから、あんぜんな ばしょで みを まもるんだ。'},
+{cat:'ぶんかと れきし',q:'にほんの むかしからの ふくは？',a:['きもの','スーツ','ジーンズ'],ok:0,why:'きものは にほんで むかしから きられてきた ふくだよ。いまも おまつりや おいわいで きることが あるね。'}
+];
+const art={
+ globe:`<circle cx="105" cy="65" r="49" fill="#a8dcf2" stroke="#4c8eb0" stroke-width="3"/><path d="M90 22l-25 19 8 19 23 6 7 24 16-8 5-25-14-8 8-21zM129 82l14 6-8 17-17 5z" fill="#78bb83"/><path d="M56 65h98M105 16c-25 22-25 77 0 98M105 16c25 22 25 77 0 98" stroke="#4c8eb0" fill="none" stroke-width="2" opacity=".6"/>`,
+ flag:`<rect x="51" y="20" width="111" height="76" rx="3" fill="white" stroke="#8293a7" stroke-width="3"/><circle cx="107" cy="58" r="22" fill="#d94c56"/><path d="M49 14v110" stroke="#697e96" stroke-width="5"/>`,
+ moon:`<circle cx="95" cy="62" r="43" fill="#ffe19a"/><circle cx="110" cy="48" r="38" fill="#f7fbff"/><g fill="#f4c55d"><circle cx="157" cy="32" r="4"/><circle cx="47" cy="37" r="4"/><circle cx="158" cy="93" r="3"/></g>`,
+ water:`<path d="M45 90q20-15 40 0t40 0t40 0" fill="none" stroke="#4e9fd1" stroke-width="7" stroke-linecap="round"/><path d="M45 108q20-15 40 0t40 0t40 0" fill="none" stroke="#8bcbe6" stroke-width="7" stroke-linecap="round"/><path d="M108 19c-14 21-25 36-25 49a25 25 0 0050 0c0-13-11-28-25-49z" fill="#8ccfea" stroke="#4e9fd1" stroke-width="2"/>`,
+ rain:`<g fill="#c9dbe8"><circle cx="79" cy="51" r="25"/><circle cx="111" cy="40" r="31"/><circle cx="140" cy="55" r="23"/><rect x="77" y="50" width="66" height="27"/></g><g stroke="#4e9fd1" stroke-width="5" stroke-linecap="round"><path d="M78 90l-7 16M111 90l-7 16M144 90l-7 16"/></g>`,
+ dolphin:`<path d="M37 76q39-52 96-17l34-11-12 21 15 17-32-3q-31 33-74 14l-24 5 9-19z" fill="#7ebad4" stroke="#438ba9" stroke-width="3"/><path d="M104 60l12-30 17 28" fill="#7ebad4" stroke="#438ba9" stroke-width="3"/><circle cx="64" cy="72" r="3" fill="#29445a"/>`,
+ butterfly:`<path d="M106 67C53 8 35 37 61 69 32 90 67 116 104 76M110 67c53-59 71-30 45 2 29 21-6 47-43 7" fill="#f9c4a1" stroke="#d77e81" stroke-width="3"/><path d="M107 55v39" stroke="#536b77" stroke-width="7" stroke-linecap="round"/><path d="M107 59l-13-18M107 59l13-18" stroke="#536b77" stroke-width="2" fill="none"/>`,
+ plant:`<path d="M105 110V53" stroke="#4b9c66" stroke-width="6"/><path d="M105 81Q62 35 59 76q17 25 46 5M105 64q43-43 51-8-13 27-51 8" fill="#7ec88a" stroke="#4b9c66" stroke-width="2"/><path d="M64 112h82" stroke="#a98065" stroke-width="7" stroke-linecap="round"/><circle cx="105" cy="35" r="13" fill="#f4cf68"/>`,
+ fire:`<path d="M107 17q-23 26-12 43-24-11-20-23-37 54-1 76 30 18 59-3 30-24-2-64-2 21-15 26 4-29-9-55z" fill="#f5a54e"/><path d="M107 65q-26 29-8 47 19 13 31-5 8-18-23-42z" fill="#ffe1a0"/>`,
+ building:`<rect x="53" y="45" width="106" height="68" rx="4" fill="#e4e9f3" stroke="#73859c" stroke-width="3"/><path d="M45 45l61-28 61 28z" fill="#9aabc0"/><g fill="#8a9eb6"><rect x="67" y="56" width="13" height="40"/><rect x="91" y="56" width="13" height="40"/><rect x="115" y="56" width="13" height="40"/><rect x="139" y="56" width="10" height="40"/></g><path d="M40 113h133" stroke="#73859c" stroke-width="5"/>`,
+ signal:`<rect x="86" y="10" width="43" height="109" rx="13" fill="#465367"/><circle cx="107" cy="33" r="12" fill="#e65d61"/><circle cx="107" cy="64" r="12" fill="#efca5e"/><circle cx="107" cy="96" r="12" fill="#72c99c"/>`,
+ food:`<rect x="49" y="45" width="116" height="65" rx="12" fill="#bd6d65"/><rect x="59" y="55" width="96" height="45" rx="7" fill="#f7e4cb"/><g fill="#e9b667"><circle cx="82" cy="75" r="12"/><circle cx="113" cy="75" r="12"/></g><circle cx="140" cy="77" r="10" fill="#7aa87a"/>`,
+ letter:`<rect x="47" y="34" width="120" height="77" rx="5" fill="#fff7e8" stroke="#a6a4a1" stroke-width="3"/><path d="M48 37l59 42 59-42" fill="none" stroke="#b6b4b0" stroke-width="3"/>`,
+ star:`<path d="M106 16l15 33 37 4-27 26 7 37-32-18-33 18 7-37-27-26 38-4z" fill="#f5d77a" stroke="#d6a44d" stroke-width="3"/>`,
+ compass:`<circle cx="106" cy="65" r="48" fill="#e8f3f9" stroke="#7598ae" stroke-width="3"/><path d="M106 26l12 39-12 39-12-39z" fill="#e97979"/><path d="M106 104l12-39-12-39-12 39z" fill="#85b6d2"/><circle cx="106" cy="65" r="6" fill="#fff"/>`,
+ frog:`<ellipse cx="106" cy="77" rx="43" ry="32" fill="#86c98c"/><circle cx="83" cy="48" r="16" fill="#86c98c"/><circle cx="130" cy="48" r="16" fill="#86c98c"/><circle cx="83" cy="48" r="6" fill="#283f43"/><circle cx="130" cy="48" r="6" fill="#283f43"/><path d="M91 83q15 12 30 0" fill="none" stroke="#416c53" stroke-width="3"/>`,
+ safety:`<path d="M106 15l55 21v35q-4 33-55 51-51-18-55-51V36z" fill="#a9d9c3" stroke="#5a9e80" stroke-width="3"/><path d="M78 69l18 18 38-41" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`,
+ kimono:`<path d="M91 25l-26 12-23 31 24 14 11-18v53h60V64l11 18 24-14-23-31-26-12-16 23z" fill="#9ebde0" stroke="#627fa5" stroke-width="3"/><path d="M91 25l16 23 16-23M76 70l61 0" fill="none" stroke="#fff" stroke-width="5"/><rect x="77" y="75" width="60" height="15" fill="#f3c38c"/>`
+};
+const illustrations=['globe','water','flag','moon','water','rain','dolphin','butterfly','plant','fire','building','signal','food','letter','star','globe','compass','frog','safety','kimono'];
+bank.forEach((q,i)=>q.art=illustrations[i]);
+function drawArt(kind){$('illustration').innerHTML=`<svg viewBox="0 0 210 130" role="img" aria-label="もんだいの イラスト">${art[kind]||art.star}</svg>`}
+let deck=[],index=0,score=0,answered=false;
+const $=id=>document.getElementById(id);
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function start(){deck=shuffle(bank).slice(0,5);index=0;score=0;render()}
+function render(){answered=false;$('dictionary').hidden=true;$('explain').hidden=true;$('next').hidden=true;const item=deck[index];drawArt(item.art);$('progress').textContent=`${index+1} / 5 もん ・ ${item.cat}`;$('question').replaceChildren();let last=0;const re=/\{([^}]+)\}/g;for(const m of item.q.matchAll(re)){ $('question').append(document.createTextNode(item.q.slice(last,m.index)));const b=document.createElement('button');b.className='term';b.textContent=m[1];b.onclick=()=>showWord(m[1]);$('question').append(b);last=m.index+m[0].length}$('question').append(document.createTextNode(item.q.slice(last)));$('choices').replaceChildren();item.a.forEach((a,i)=>{const b=document.createElement('button');b.className='choice';b.textContent=`${i+1}　${a}`;b.onclick=()=>answer(i);$('choices').append(b)})}
+function showWord(w){const d=$('dictionary');d.hidden=false;d.replaceChildren();const h=document.createElement('h2');h.textContent=`📖 ことばの いみ：「${w}」`;const p=document.createElement('div');p.textContent=words[w]||'この ことばは、あとで いっしょに しらべてみよう。';d.append(h,p)}
+function answer(i){if(answered)return;answered=true;const q=deck[index];if(i===q.ok)score++;[...$('choices').children].forEach((b,n)=>{b.disabled=true;if(n===q.ok)b.classList.add('correct');else if(n===i)b.classList.add('wrong')});$('explain').hidden=false;$('explain').textContent=(i===q.ok?'🎉 せいかい！　':'💡 おぼえよう！　')+q.why;$('next').hidden=false;$('next').textContent=index===4?'けっかを みる →':'つぎの もんだい →'}
+$('next').onclick=()=>{if(index<4){index++;render()}else{ $('progress').textContent='おしまい！';$('illustration').innerHTML='<span style="font-size:72px">🏆</span>';$('question').textContent=`🎉 ${score} / 5 もん せいかい！`;$('choices').replaceChildren();$('dictionary').hidden=true;$('explain').hidden=false;$('explain').textContent='よく がんばったね！ まちがえた もんだいも、あたらしい ことを しった しょうこだよ。';$('next').textContent='もういちど あそぶ ↻';$('next').onclick=()=>{ $('next').onclick=nextDefault;start()}}};const nextDefault=$('next').onclick;start();
+</script></body></html>
